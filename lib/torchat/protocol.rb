@@ -19,25 +19,33 @@
 
 class Torchat; module Protocol
 
+def self.valid_address? (address)
+	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}$/)
+end
+
+def self.encode (data)
+	data = data.dup
+
+	data.force_encoding 'BINARY'
+	data.gsub!("\\", "\\/")
+	data.gsub!("\n", "\\n")
+
+	data
+end
+
+def self.decode (data)
+	data = data.dup
+
+	data.force_encoding 'BINARY'
+	data.gsub!("\\n", "\n")
+	data.gsub!("\\/", "\\")
+
+	data
+end
+
 class Packet
-	def self.encode (data)
-		data = data.dup
-
-		data.force_encoding 'BINARY'
-		data.gsub!("\\", "\\/")
-		data.gsub!("\n", "\\n")
-
-		data
-	end
-
-	def self.decode (data)
-		data = data.dup
-
-		data.force_encoding 'BINARY'
-		data.gsub!("\\n", "\n")
-		data.gsub!("\\/", "\\")
-
-		data
+	def self.type
+		name[/(::)?([^:]+)$/, 2].gsub(/([A-Z])/) { '_' + $1.downcase }[1 .. -1].to_sym
 	end
 
 	def self.unpack (data)
@@ -52,24 +60,42 @@ class Packet
 
 	attr_accessor :from
 
+	def type
+		self.class.type
+	end
+
 	def pack (data)
-		self.class.name[/(::)?([^:]+)$/, 2].gsub(/([A-Z])/) { '_' + $1.downcase }[1 .. -1] + Packet.encode(data)
+		self.class.type + encode(data)
+	end
+
+	class NoValue < Packet
+		def self.unpack (data)
+			new
+		end
+
+		def pack
+			super('')
+		end
+	end
+
+	class SingleValue < Packet
+		def self.unpack (data)
+			new(data)
+		end
+
+		def initialize (value)
+			@internal
+		end
+
+		def pack
+			super(@internal)
+		end
 	end
 end
 
-class NotImplemented < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :command
-
-	def initialize (command)
-		@command = command
-	end
-
-	def pack
-		super(command)
+class NotImplemented < Packet::SingleValue
+	def command
+		@internal
 	end
 end
 
@@ -86,7 +112,7 @@ class Ping < Packet
 	end
 
 	def valid?
-		!!@address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}$/)
+		valid_address?(@address)
 	end
 
 	def pack
@@ -94,57 +120,22 @@ class Ping < Packet
 	end
 end
 
-class Pong < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :cookie
-
-	def initialize (cookie)
-		@cookie = cookie
-	end
-
-	def pack
-		super(cookie)
+class Pong < Packet::SingleValue
+	def cookie
+		@internal
 	end
 end
 
-class Client < Packet
-	def self.unpack (data)
-		new(data)
+class Client < Packet::SingleValue
+	def name
+		@internal
 	end
 
-	attr_accessor :name
-
-	def initialize (name)
-		@name = name
-	end
-
-	def pack
-		super(name)
-	end
-
-	def to_s
-		name
-	end
-
-	alias to_str to_s
+	alias to_s   name
+	alias to_str name
 end
 
-class Version < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	def initialize (value)
-		@internal = value
-	end
-
-	def pack
-		super(@internal)
-	end
-
+class Version < Packet::SingleValue
 	def to_s
 		@internal
 	end
@@ -152,47 +143,29 @@ class Version < Packet
 	alias to_str to_s
 end
 
-class Status < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_reader :name
-
+class Status < Packet::SingleValue
 	def initialize (name)
-		@name = name.to_s.downcase
+		@internal = name.to_s.downcase
 	end
 
 	def available?
-		@name == 'available'
+		@internal == 'available'
 	end
 
 	def away?
-		@name == 'away'
+		@internal == 'away'
 	end
 
 	def extended_away?
-		@name == 'xa'
-	end
-
-	def pack
-		super(name)
+		@internal == 'xa'
 	end
 end
 
-class ProfileName < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
+class ProfileName < Packet::SingleValue
 	def initialize (name)
 		@internal = name.encode('UTF-8')
 	end
 
-	def pack
-		super(@internal)
-	end
-
 	def to_s
 		@internal
 	end
@@ -200,19 +173,11 @@ class ProfileName < Packet
 	alias to_str to_s
 end
 
-class ProfileText < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
+class ProfileText < Packet::SingleValue
 	def initialize (text)
 		@internal = text.encode('UTF-8')
 	end
 
-	def pack
-		super(@internal)
-	end
-
 	def to_s
 		@internal
 	end
@@ -220,61 +185,27 @@ class ProfileText < Packet
 	alias to_str to_s
 end
 
-class ProfileAvatarAlpha < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :data
-
-	def initialize (data)
-		@data = data
+class ProfileAvatarAlpha < Packet::SingleValue
+	def data
+		@internal
 	end
 end
 
-class ProfileAvatar < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :data
-
-	def initialize (data)
-		@data = data
+class ProfileAvatar < Packet::SingleValue
+	def data
+		@internal
 	end
 end
 
-class AddMe < Packet
-	def self.unpack (data)
-		new
-	end
-
-	def pack
-		super('')
-	end
+class AddMe < Packet::NoValue
 end
 
-class RemoveMe < Packet
-	def self.unpack (data)
-		new
-	end
-
-	def pack
-		super('')
-	end
+class RemoveMe < Packet::NoValue
 end
 
-class Message < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
+class Message < Packet::SingleValue
 	def initialize (data)
 		@internal = data.encode('UTF-8')
-	end
-
-	def pack
-		super(@internal)
 	end
 
 	def to_s
@@ -376,35 +307,23 @@ class FiledataError < Packet
 	end
 end
 
-class FileStopSending < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :id
-
+class FileStopSending < Packet::SingleValue
 	def initialize (id)
-		@id = id || rand.to_s
+		@internal = id || rand.to_s
 	end
 
-	def pack
-		super('')
+	def id
+		@internal
 	end
 end
 
-class FileStopReceiving < Packet
-	def self.unpack (data)
-		new(data)
-	end
-
-	attr_accessor :id
-
+class FileStopReceiving < Packet::SingleValue
 	def initialize (id)
-		@id = id || rand.to_s
+		@internal = id || rand.to_s
 	end
 
-	def pack
-		super('')
+	def id
+		@internal
 	end
 end
 

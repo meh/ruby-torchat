@@ -15,7 +15,7 @@ end.parse!
 
 EM.run {
 	Torchat.new(options[:config]).start {|s|
-		s.on :ping do
+		s.on :message do
 
 		end
 	}

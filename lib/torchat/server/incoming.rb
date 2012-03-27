@@ -17,22 +17,20 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'yaml'
-require 'digest/md5'
+class Torchat; class Server
 
-require 'torchat/server'
-require 'torchat/protocol'
+class Incoming < EventMachine::Protocols::LineAndTextProtocol
+	attr_accessor :owner
 
-class Torchat
-	attr_reader :config, :server
+	def receive_line (line)
+		packet = Protocol::Packet.from(@owner, line.chomp)
 
-	def initialize (path)
-		@config = YAML.parse_file(path).transform
+		@owner.server.received packet
 	end
 
-	def start (&block)
-		@server = Server.new(&block)
-		
-		@server.start
+	def unbind
+		@owner.disconnect
 	end
 end
+
+end; end
