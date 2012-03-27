@@ -1,0 +1,22 @@
+#! /usr/bin/env ruby
+require 'optparse'
+require 'eventmachine'
+require 'torchat'
+
+options = {}
+
+OptionParser.new do |o|
+	options[:config] = Path.expand_path '~/.torchat/torchat.yml'
+
+	o.on '-c', '--config PATH', 'the path to the config file' do |path|
+		options[:config] = path
+	end
+end.parse!
+
+EM.run {
+	Torchat.new(options[:config]).start {|s|
+		s.on :ping do
+
+		end
+	}
+}
