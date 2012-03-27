@@ -17,39 +17,24 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-class Torchat; class Server
+require 'torchat/server/buddy'
 
-class Outgoing < EventMachine::Protocols::LineAndTextProtocol
-	attr_accessor :owner
+class Buddies < Hash
+	def [] (name)
+		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.alias || name === b.name }
+	end
 
-	def connection_completed
-		@delayed = []
-
-		socksify("#{@owner.address}.onion", @owner.port) do
-			@delayed.each { |line| send_data line }
-			@delayed = nil
+	def []= (name, buddy)
+		unless Protocol.valid_address?(name)
+			name = find { |a, b| name === b.alias || name === b.name }.address
 		end
+
+		name = name[/^(.*?)(\.onion)?$/, 1]
+
+		super(name, buddy)
 	end
 
-	def receive_line (line)
-		packet = Protocol::Packet.from(@owner, line.chomp)
-		
-		return unless packet.type.to_s.start_with 'file'
-
-		@owner.server.received packet
-	end
-
-	def send_packet (packet)
-		if @delayed
-			@delayed << packet.pack
-		else
-			send_data packet.pack
-		end
-	end
-
-	def unbind
-		@owner.disconnect
+	def << (buddy)
+		self[buddy.address] = buddy
 	end
 end
-
-end; end

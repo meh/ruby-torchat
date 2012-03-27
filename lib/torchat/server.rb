@@ -17,25 +17,29 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/server/buddy'
+require 'torchat/server/buddies'
 
 class Torchat
 
 class Server
-	attr_reader :options, :buddies
+	attr_reader :config, :buddies
 
-	def initialize (options)
-		@options = options
+	def initialize (config)
+		@config = config
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
-		@buddies   = []
+		@buddies   = Buddies.new
 		@timers    = []
 
 		yield self if block_given?
 	end
 
+	def tor
+		Struct.new(:host, :port).new(@config['outgoing']['host'], @config['outgoing']['port'].to_i)
+	end
+
 	def add_buddy (address, ali = nil)
-		Buddy.new(self, address).tap {|buddy|
+		buddies << Buddy.new(self, address).tap {|buddy|
 			buddy.alias = ali
 		}
 	end
@@ -56,7 +60,7 @@ class Server
 		}
 	end
 
-	def start (host = '0.0.0.0', port)
+	def start (host = @config['incoming']['host'], port = @config['incoming']['port'].to_i)
 		zelf = self
 
 		@signature = EM.start_server host, port, Incoming do |incoming|

@@ -1,0 +1,8 @@
+---
+outgoing:
+  host: 127.0.0.1
+  port: 11109
+
+incoming:
+  host: 127.0.0.1
+  port: 11009

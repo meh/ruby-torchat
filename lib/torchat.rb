@@ -31,7 +31,7 @@ class Torchat
 	end
 
 	def start (&block)
-		@server = Server.new(&block)
+		@server = Server.new(@config, &block)
 		
 		@server.start
 	end

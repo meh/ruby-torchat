@@ -6,7 +6,7 @@ require 'torchat'
 options = {}
 
 OptionParser.new do |o|
-	options[:config] = Path.expand_path '~/.torchat/torchat.yml'
+	options[:config] = File.expand_path '~/.torchat/torchat.yml'
 
 	o.on '-c', '--config PATH', 'the path to the config file' do |path|
 		options[:config] = path
@@ -19,4 +19,6 @@ EM.run {
 
 		end
 	}
+
+	puts 'TorChat started'
 }

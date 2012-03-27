@@ -17,6 +17,9 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'torchat/server/incoming'
+require 'torchat/server/outgoing'
+
 class Torchat; class Server
 
 class Buddy
@@ -31,7 +34,7 @@ class Buddy
 		end
 
 		@server  = server
-		@address = address
+		@address = address[/^(.*?)(\.onion)?$/, 1]
 
 		@incoming = incoming
 		@outgoing = outgoing

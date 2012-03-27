@@ -20,7 +20,7 @@
 class Torchat; module Protocol
 
 def self.valid_address? (address)
-	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}$/)
+	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}(\.onion)?$/)
 end
 
 def self.encode (data)
@@ -51,7 +51,7 @@ class Packet
 	def self.unpack (data)
 		name, data = data.split(' ', 2)
 
-		Protocol.const_get(name.gsub(/(\A|_)(\w)/) { $2.upcase }).unpack(data ? decode(data) : nil)
+		Protocol.const_get(name.gsub(/(\A|_)(\w)/) { $2.upcase }).unpack(data ? Protocol.decode(data) : nil)
 	end
 
 	def self.from (from, data)
@@ -65,7 +65,7 @@ class Packet
 	end
 
 	def pack (data)
-		self.class.type + encode(data)
+		self.class.type + Protocol.encode(data)
 	end
 
 	class NoValue < Packet
@@ -80,11 +80,15 @@ class Packet
 
 	class SingleValue < Packet
 		def self.unpack (data)
+			if data.nil? || data.empty?
+				raise ArgumentError, 'missing value for packet'
+			end
+
 			new(data)
 		end
 
 		def initialize (value)
-			@internal
+			@internal = value
 		end
 
 		def pack
@@ -101,7 +105,11 @@ end
 
 class Ping < Packet
 	def self.unpack (data)
-		new(*data.split(' '))
+		if data.nil? || (tmp = data.split(' ')).length != 2
+			raise ArgumentError, 'not enough values in the packet'
+		end
+
+		new(*tmp)
 	end
 
 	attr_accessor :address, :cookie
