@@ -18,6 +18,8 @@
 #++
 
 require 'yaml'
+require 'digest/md5'
+
 require 'torchat/server'
 require 'torchat/protocol'
 
