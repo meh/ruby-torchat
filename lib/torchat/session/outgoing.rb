@@ -30,7 +30,11 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 	def connection_completed
 		socksify(@owner.address, @owner.port) do
-			@owner.connected
+			if socks_error?
+				@owner.disconnected
+			else
+				@owner.connected
+			end
 		end
 	end
 
@@ -49,8 +53,6 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 	def send_packet (*args)
 		if @delayed
-			puts ">> #{@owner ? @owner.id : 'unknown'} delayed #{args.inspect}"
-
 			@delayed << args
 		else
 			send_packet! *args

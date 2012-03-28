@@ -25,7 +25,8 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader :config, :buddies
+	attr_reader :config, :buddies, :name, :description
+	attr_writer :client, :version
 
 	def initialize (config)
 		@config = config
@@ -33,6 +34,31 @@ class Session
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@buddies   = Buddies.new
 		@timers    = []
+
+		on :verification do |buddy|
+			send_packet :client,  client
+			send_packet :version, version
+
+			send_packet :add_me
+
+			send_packet :status,  :available
+		end
+
+		on :profile_name do |packet, buddy|
+			buddy.name = packet.to_str
+		end
+
+		on :profile_text do |packet, buddy|
+			buddy.description = packet.to_str
+		end
+
+		on :profile_avatar_alpha do |packet, buddy|
+			buddy.avatar.alpha = packet.data
+		end
+
+		on :profile_avatar do |packet, buddy|
+			buddy.avatar.rgb = packet.data
+		end
 
 		yield self if block_given?
 	end
@@ -45,11 +71,36 @@ class Session
 		"#{id}.onion"
 	end
 
+	def client
+		@client || 'ruby-torchat'
+	end
+	
+	def version
+		@version || Torchat.version
+	end
+
 	def tor
 		Struct.new(:host, :port).new(
 			@config['connection']['outgoing']['host'],
 			@config['connection']['outgoing']['port'].to_i
 		)
+	end
+
+	def name= (value)
+		@name = value
+
+		buddies.each {|buddy|
+			buddy.send_packet :profile_name, value
+		}
+	end
+
+	def description= (value)
+		@description = value
+
+		buddies.each {|buddy|
+			buddy.send_packet :profile_text, value
+		}
+
 	end
 
 	def add_buddy (address)

@@ -69,7 +69,7 @@ class Packet
 	end
 
 	def pack (data)
-		"#{type} #{Protocol.encode(data)}\n"
+		"#{type}#{" #{Protocol.encode(data)}" if data && !data.empty?}\n"
 	end
 
 	class NoValue < Packet
@@ -104,7 +104,7 @@ class Packet
 		end
 
 		def inspect
-			"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{@internal}>"
+			"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{@internal.inspect}>"
 		end
 	end
 end
@@ -219,14 +219,38 @@ class ProfileText < Packet::SingleValue
 end
 
 class ProfileAvatarAlpha < Packet::SingleValue
+	def self.unpack (data)
+		new(data && data.empty? ? nil : data)
+	end
+
+	def nil?
+		@internal.nil?
+	end
+
 	def data
 		@internal
+	end
+
+	def inspect
+		"#<#{self.class.name}>"
 	end
 end
 
 class ProfileAvatar < Packet::SingleValue
+	def self.unpack (data)
+		new(data && data.empty? ? nil : data)
+	end
+
+	def nil?
+		@internal.nil?
+	end
+
 	def data
 		@internal
+	end
+
+	def inspect
+		"#<#{self.class.name}>"
 	end
 end
 

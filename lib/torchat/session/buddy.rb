@@ -17,13 +17,15 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'torchat/avatar'
+
 require 'torchat/session/incoming'
 require 'torchat/session/outgoing'
 
 class Torchat; class Session
 
 class Buddy
-	attr_reader   :session, :id, :address
+	attr_reader   :session, :id, :address, :avatar
 	attr_accessor :name, :description
 
 	def port; 11009; end
@@ -33,9 +35,10 @@ class Buddy
 			raise ArgumentError, "#{address} is an invalid onion id"
 		end
 
-		@session  = session
+		@session = session
 		@id      = address[/^(.*?)(\.onion)?$/, 1]
 		@address = "#{@id}.onion"
+		@avatar  = Avatar.new
 
 		@incoming = incoming
 		@outgoing = outgoing
@@ -64,6 +67,10 @@ class Buddy
 		raise 'you cannot send packets yet' unless @outgoing
 
 		@outgoing.send_packet! *args
+	end
+
+	def send_message (text)
+		send_packet :message, text
 	end
 
 	def connect
@@ -98,10 +105,6 @@ class Buddy
 		@outgoing.verification_completed
 
 		session.buddies << self
-
-		send_packet :version, Torchat.version
-		send_packet :client,  'ruby-torchat'
-		send_packet :status,  :available
 
 		session.fire :verification, self
 	end

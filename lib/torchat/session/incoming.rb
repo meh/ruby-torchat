@@ -23,7 +23,13 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
 
 	def receive_line (line)
-		packet = Protocol::Packet.from(@owner, line.chomp) rescue nil
+		packet = begin
+			Protocol::Packet.from(@owner, line.chomp)
+		rescue => e
+			puts e.message
+			puts line.inspect
+			return
+		end
 
 		puts "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}"
 
