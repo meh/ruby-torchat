@@ -23,13 +23,37 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
 
 	def receive_line (line)
-		packet = Protocol::Packet.from(@owner, line.chomp)
+		packet = Protocol::Packet.from(@owner, line.chomp) rescue nil
 
-		@owner.server.received packet
+		if packet.type == :ping || packet.type == :pong
+			if packet.type == :ping && packet.valid?
+				if @last_ping_address && packet.address != @last_ping_address
+					close_connection_after_writing and return
+				end
+
+				@last_ping_address = packet.address
+
+				if @owner
+					@owner.send_packet :pong, packet.cookie
+				else
+					Buddy.new(@server, packet.address, self)
+				end
+			else
+				return unless @owner && @owner.pinged?
+
+				unless @owner.authenticated?
+					@owner.authenticated
+				end
+
+				@owner.pong!
+			end
+		else
+			@owner.server.received packet if packet && @owner && @owner.connected?
+		end
 	end
 
 	def unbind
-		@owner.disconnect
+		@owner.disconnected if @owner
 	end
 end
 

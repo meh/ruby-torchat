@@ -17,27 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'yaml'
-require 'digest/md5'
-
-require 'torchat/version'
-require 'torchat/server'
-require 'torchat/protocol'
-
 class Torchat
-	attr_reader :config, :server
-
-	def initialize (path)
-		@config = YAML.parse_file(path).transform
-	end
-
-	def start (&block)
-		@server = Server.new(@config, &block)
-		
-		@server.start
-	end
-
-	def send_packet_to (name, packet)
-		@server.buddies[name].send_packet(packet)
+	def self.version
+		'0.0.1'
 	end
 end

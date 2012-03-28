@@ -1,6 +1,8 @@
+Kernel.load 'lib/torchat/version'
+
 Gem::Specification.new {|s|
 	s.name         = 'torchat'
-	s.version      = '0.0.1'
+	s.version      = Torchat.version
 	s.author       = 'meh.'
 	s.email        = 'meh@paranoici.org'
 	s.homepage     = 'http://github.com/meh/ruby-torchat'

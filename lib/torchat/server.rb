@@ -35,13 +35,14 @@ class Server
 	end
 
 	def tor
-		Struct.new(:host, :port).new(@config['outgoing']['host'], @config['outgoing']['port'].to_i)
+		Struct.new(:host, :port).new(
+			@config['connection']['outgoing']['host'],
+			@config['connection']['outgoing']['port'].to_i
+		)
 	end
 
-	def add_buddy (address, ali = nil)
-		buddies << Buddy.new(self, address).tap {|buddy|
-			buddy.alias = ali
-		}
+	def add_buddy (address)
+		buddies << Buddy.new(self, address)
 	end
 
 	def on (what, &block)
@@ -60,7 +61,10 @@ class Server
 		}
 	end
 
-	def start (host = @config['incoming']['host'], port = @config['incoming']['port'].to_i)
+	def start (host = nil, port = nil)
+		host ||= @config['connection']['incoming']['host']
+		port ||= @config['connection']['incoming']['port'].to_i
+
 		zelf = self
 
 		@signature = EM.start_server host, port, Incoming do |incoming|

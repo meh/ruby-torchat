@@ -48,10 +48,14 @@ class Packet
 		name[/(::)?([^:]+)$/, 2].gsub(/([A-Z])/) { '_' + $1.downcase }[1 .. -1].to_sym
 	end
 
+	def self.[] (name)
+		Protocol.const_get(name.to_s.gsub(/(\A|_)(\w)/) { $2.upcase })
+	end
+
 	def self.unpack (data)
 		name, data = data.split(' ', 2)
 
-		Protocol.const_get(name.gsub(/(\A|_)(\w)/) { $2.upcase }).unpack(data ? Protocol.decode(data) : nil)
+		self[name].unpack(data ? Protocol.decode(data) : nil)
 	end
 
 	def self.from (from, data)
@@ -65,7 +69,7 @@ class Packet
 	end
 
 	def pack (data)
-		self.class.type + Protocol.encode(data)
+		self.class.type + Protocol.encode(data) + "\n"
 	end
 
 	class NoValue < Packet

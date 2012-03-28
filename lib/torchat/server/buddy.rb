@@ -24,7 +24,7 @@ class Torchat; class Server
 
 class Buddy
 	attr_reader   :server, :address
-	attr_accessor :alias, :name, :description
+	attr_accessor :name, :description
 
 	def port; 11009; end
 
@@ -39,7 +39,7 @@ class Buddy
 		@incoming = incoming
 		@outgoing = outgoing
 
-		connect! unless @outgoing
+		connect unless @outgoing
 
 		own!
 	end
@@ -49,7 +49,17 @@ class Buddy
 		@outgoing.owner = self if @outgoing
 	end
 
-	def connect!
+	def pinged?; @pinged;         end
+	def ping!;   @pinged = true;  end
+	def pong!;   @pinged = false; end
+
+	def send_packet (*args)
+		raise 'you cannot send packets yet' unless @outgoing
+
+		@outgoing.send_packet *args
+	end
+
+	def connect
 		EM.connect server.tor.host, server.tor.port, Outgoing do |outgoing|
 			@outgoing = outgoing
 		end
@@ -57,17 +67,51 @@ class Buddy
 		own!
 	end
 
-	def send_packet (packet)
-		raise 'you cannot send packets yet' unless @outgoing
+	def connected?; @connected; end
 
-		@outgoing.send_packet
+	def connected
+		@connected = true
+
+		send_packet! :ping, address
+		ping!
+
+		server.fire :connection, self
+	end
+
+	def authenticated?; @authenticated; end
+
+	def authenticated
+		@authenticated = true
+
+		@outgoing.authentication_completed
+
+		send_packet :version, Torchat.version
+		send_packet :client,  'ruby-torchat'
+
+		server.fire :authentication, self
 	end
 
 	def disconnect
 		@incoming.close_connection_after_writing if @incoming
 		@outgoing.close_connection_after_writing if @outgoing
 
+		server.buddies.delete(server.buddies.key(self))
+
 		@outgoing = @incoming = nil
+
+		disconnected
+	end
+
+	def disconnected?; @disconnected; end
+
+	def disconnected
+		return if disconnected?
+
+		@disconnected = true
+
+		disconnect
+
+		server.fire :disconnection, self
 	end
 end
 
