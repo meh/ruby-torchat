@@ -17,9 +17,9 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/server/buddy'
+require 'torchat/session/buddy'
 
-class Torchat; class Server
+class Torchat; class Session
 
 class Buddies < Hash
 	def [] (name)

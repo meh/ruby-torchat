@@ -20,11 +20,11 @@
 require 'eventmachine'
 require 'em-socksify'
 
-require 'torchat/server/buddies'
+require 'torchat/session/buddies'
 
 class Torchat
 
-class Server
+class Session
 	attr_reader :config, :buddies
 
 	def initialize (config)
@@ -79,7 +79,7 @@ class Server
 		zelf = self
 
 		@signature = EM.start_server host, port, Incoming do |incoming|
-			incoming.instance_eval { @server = zelf }
+			incoming.instance_eval { @session = zelf }
 		end
 	end
 

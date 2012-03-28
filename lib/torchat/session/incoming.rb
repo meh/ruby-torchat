@@ -17,7 +17,7 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-class Torchat; class Server
+class Torchat; class Session
 
 class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
@@ -39,13 +39,13 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			if @owner
 				@owner.send_packet :pong, packet.cookie
 			else
-				if @server.buddies.has_key?(packet.address)
+				if @session.buddies.has_key?(packet.address)
 					close_connection_after_writing
 					
 					return
 				end
 
-				Buddy.new(@server, packet.address, self).tap {|buddy|
+				Buddy.new(@session, packet.address, self).tap {|buddy|
 					buddy.connect
 					buddy.send_packet :pong, packet.cookie
 				}
@@ -59,7 +59,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@owner.pong!
 		else
-			@owner.server.received packet if packet && @owner && @owner.connected?
+			@owner.session.received packet if packet && @owner && @owner.connected?
 		end
 	end
 

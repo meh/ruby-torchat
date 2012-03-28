@@ -21,23 +21,23 @@ require 'yaml'
 require 'digest/md5'
 
 require 'torchat/version'
-require 'torchat/server'
+require 'torchat/session'
 require 'torchat/protocol'
 
 class Torchat
-	attr_reader :config, :server
+	attr_reader :config, :session
 
 	def initialize (path)
 		@config = YAML.parse_file(path).transform
 	end
 
 	def start (&block)
-		@server = Server.new(@config, &block)
+		@session = Session.new(@config, &block)
 		
-		@server.start
+		@session.start
 	end
 
 	def send_packet_to (name, packet)
-		@server.buddies[name].send_packet(packet)
+		@session.buddies[name].send_packet(packet)
 	end
 end

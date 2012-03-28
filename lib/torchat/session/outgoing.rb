@@ -17,7 +17,7 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-class Torchat; class Server
+class Torchat; class Session
 
 class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	include EM::Socksify
@@ -44,7 +44,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 		
 		return unless packet.type.to_s.start_with 'file'
 
-		@owner.server.received packet
+		@owner.session.received packet
 	end
 
 	def send_packet (*args)
