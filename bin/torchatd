@@ -1,6 +1,5 @@
 #! /usr/bin/env ruby
 require 'optparse'
-require 'eventmachine'
 require 'torchat'
 
 options = {}
@@ -15,6 +14,18 @@ end.parse!
 
 EM.run {
 	Torchat.new(options[:config]).start {|s|
+		s.on :connection do |buddy|
+			puts "#{buddy.id} connected"
+		end
+
+		s.on :verification do |buddy|
+			puts "#{buddy.id} has been verified"
+		end
+
+		s.on :disconnection do |buddy|
+			puts "#{buddy.id} disconnected"
+		end
+
 		s.on :message do
 
 		end

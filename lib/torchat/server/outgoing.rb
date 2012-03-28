@@ -20,6 +20,8 @@
 class Torchat; class Server
 
 class Outgoing < EventMachine::Protocols::LineAndTextProtocol
+	include EM::Socksify
+
 	attr_accessor :owner
 
 	def post_init
@@ -27,14 +29,14 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def connection_completed
-		socksify("#{@owner.address}.onion", @owner.port) do
+		socksify(@owner.address, @owner.port) do
 			@owner.connected
 		end
 	end
 
-	def authentication_completed
-		@delayed.each { |p| send_packet! p }
-		@delayed = false
+	def verification_completed
+		@delayed.each { |p| send_packet! *p }
+		@delayed = nil
 	end
 
 	def receive_line (line)
@@ -47,6 +49,8 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 	def send_packet (*args)
 		if @delayed
+			puts ">> #{@owner ? @owner.id : 'unknown'} delayed #{args.inspect}"
+
 			@delayed << args
 		else
 			send_packet! *args
@@ -54,11 +58,15 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def send_packet! (*args)
-		send_data(if args.first.is_a? Symbol
+		packet = if args.first.is_a? Symbol
 			Protocol::Packet[args.shift].new(*args)
 		else
 			args.first
-		end.pack)
+		end
+
+		puts ">> #{@owner ? @owner.id : 'unknown'} #{packet.inspect}"
+
+		send_data packet.pack
 	end
 
 	def unbind

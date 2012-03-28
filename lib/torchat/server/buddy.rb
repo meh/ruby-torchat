@@ -23,7 +23,7 @@ require 'torchat/server/outgoing'
 class Torchat; class Server
 
 class Buddy
-	attr_reader   :server, :address
+	attr_reader   :server, :id, :address
 	attr_accessor :name, :description
 
 	def port; 11009; end
@@ -34,7 +34,8 @@ class Buddy
 		end
 
 		@server  = server
-		@address = address[/^(.*?)(\.onion)?$/, 1]
+		@id      = address[/^(.*?)(\.onion)?$/, 1]
+		@address = "#{@id}.onion"
 
 		@incoming = incoming
 		@outgoing = outgoing
@@ -59,6 +60,12 @@ class Buddy
 		@outgoing.send_packet *args
 	end
 
+	def send_packet! (*args)
+		raise 'you cannot send packets yet' unless @outgoing
+
+		@outgoing.send_packet! *args
+	end
+
 	def connect
 		EM.connect server.tor.host, server.tor.port, Outgoing do |outgoing|
 			@outgoing = outgoing
@@ -70,25 +77,33 @@ class Buddy
 	def connected?; @connected; end
 
 	def connected
+		return if connected?
+
 		@connected = true
 
-		send_packet! :ping, address
+		send_packet! :ping, server.address
+
 		ping!
 
 		server.fire :connection, self
 	end
 
-	def authenticated?; @authenticated; end
+	def verified?; @verified; end
 
-	def authenticated
-		@authenticated = true
+	def verified
+		return if verified?
 
-		@outgoing.authentication_completed
+		@verified = true
+
+		@outgoing.verification_completed
+
+		server.buddies << self
 
 		send_packet :version, Torchat.version
 		send_packet :client,  'ruby-torchat'
+		send_packet :status,  :available
 
-		server.fire :authentication, self
+		server.fire :verification, self
 	end
 
 	def disconnect
@@ -112,6 +127,10 @@ class Buddy
 		disconnect
 
 		server.fire :disconnection, self
+	end
+
+	def inspect
+		"#<Torchat::Buddy(#{id})#{": #{name}#{", #{description}" if description}" if name}>"
 	end
 end
 

@@ -17,6 +17,9 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'eventmachine'
+require 'em-socksify'
+
 require 'torchat/server/buddies'
 
 class Torchat
@@ -32,6 +35,14 @@ class Server
 		@timers    = []
 
 		yield self if block_given?
+	end
+
+	def id
+		@config['address'][/^(.*?)(\.onion)?$/, 1]
+	end
+
+	def address
+		"#{id}.onion"
 	end
 
 	def tor

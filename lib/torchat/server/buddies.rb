@@ -19,6 +19,8 @@
 
 require 'torchat/server/buddy'
 
+class Torchat; class Server
+
 class Buddies < Hash
 	def [] (name)
 		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.alias || name === b.name }
@@ -38,3 +40,5 @@ class Buddies < Hash
 		self[buddy.address] = buddy
 	end
 end
+
+end; end

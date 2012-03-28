@@ -69,7 +69,7 @@ class Packet
 	end
 
 	def pack (data)
-		self.class.type + Protocol.encode(data) + "\n"
+		"#{type} #{Protocol.encode(data)}\n"
 	end
 
 	class NoValue < Packet
@@ -79,6 +79,10 @@ class Packet
 
 		def pack
 			super('')
+		end
+
+		def inspect
+			"#<#{self.class.name}#{"(#{from.inspect})" if from}>"
 		end
 	end
 
@@ -98,6 +102,10 @@ class Packet
 		def pack
 			super(@internal)
 		end
+
+		def inspect
+			"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{@internal}>"
+		end
 	end
 end
 
@@ -116,19 +124,32 @@ class Ping < Packet
 		new(*tmp)
 	end
 
-	attr_accessor :address, :cookie
+	attr_reader   :id, :address
+	attr_accessor :cookie
 
 	def initialize (address, cookie = nil)
-		@address = address
 		@cookie  = cookie || rand.to_s
+
+		self.address = address
 	end
 
+	def id= (value)
+		@id      = value[/^(.*?)(\.onion)?$/, 1]
+		@address = "#{@id}.onion"
+	end
+
+	alias address= id=
+
 	def valid?
-		valid_address?(@address)
+		Protocol.valid_address?(@address)
 	end
 
 	def pack
-		super("#{address} #{cookie}")
+		super("#{id} #{cookie}")
+	end
+
+	def inspect
+		"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{id} #{cookie}>"
 	end
 end
 

@@ -1,4 +1,4 @@
-Kernel.load 'lib/torchat/version'
+Kernel.load 'lib/torchat/version.rb'
 
 Gem::Specification.new {|s|
 	s.name         = 'torchat'
@@ -14,6 +14,6 @@ Gem::Specification.new {|s|
 	s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
 	s.require_paths = ['lib']
 
-	s.add_dependency 'eventmachine'
+	s.add_dependency 'eventmachine', '>= 1.0.0.beta.4'
 	s.add_dependency 'em-socksify'
 }
