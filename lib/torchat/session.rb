@@ -25,11 +25,14 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader :config, :buddies, :name, :description
-	attr_writer :client, :version
+	attr_reader   :config, :buddies, :name, :description
+	attr_writer   :client, :version
+	attr_accessor :status
 
 	def initialize (config)
 		@config = config
+
+		@status = :available
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@buddies   = Buddies.new
@@ -41,7 +44,7 @@ class Session
 
 			buddy.send_packet :add_me
 
-			buddy.send_packet :status,  :available
+			buddy.send_packet :status, status
 		end
 
 		on :profile_name do |packet, buddy|
@@ -58,6 +61,12 @@ class Session
 
 		on :profile_avatar do |packet, buddy|
 			buddy.avatar.rgb = packet.data
+		end
+
+		set_interval 30 do
+			buddies.each_value {|buddy|
+				buddy.send_packet :status, status
+			}
 		end
 
 		yield self if block_given?

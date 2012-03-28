@@ -1,5 +1,7 @@
 ---
-address: 7acbk6jpofsanyfp
+address:     7acbk6jpofsanyfp
+name:        Anonymous
+description: This is a description.
 
 connection:
   outgoing:
