@@ -220,7 +220,7 @@ end
 
 class ProfileAvatarAlpha < Packet::SingleValue
 	def self.unpack (data)
-		new(data && data.empty? ? nil : data)
+		new(data && data.empty? || data.bytesize != 4096 ? nil : data)
 	end
 
 	def nil?
@@ -238,7 +238,7 @@ end
 
 class ProfileAvatar < Packet::SingleValue
 	def self.unpack (data)
-		new(data && data.empty? ? nil : data)
+		new(data && data.empty? || data.bytesize != 12288 ? nil : data)
 	end
 
 	def nil?

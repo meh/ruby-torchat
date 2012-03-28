@@ -27,9 +27,11 @@ class Avatar
 
 		require 'RMagick'
 
-		RMagick::Image.new(64, 64).tap {|image|
+		Magick::Image.new(64, 64).tap {|image|
 			@rgb.bytes.each_slice(3).with_index {|(r, g, b), index|
-				image.pixel_color(index % 64, (index / 64.0).ceil, Pixel.new(r, g, b, @alpha ? @alpha[index] : nil))
+				x, y = index % 64, index / 64
+
+				image.pixel_color(x, y, Magick::Pixel.new(r, g, b, @alpha ? @alpha[index] : nil))
 			}
 		}
 	end
