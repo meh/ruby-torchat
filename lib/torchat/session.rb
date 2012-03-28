@@ -36,12 +36,12 @@ class Session
 		@timers    = []
 
 		on :verification do |buddy|
-			send_packet :client,  client
-			send_packet :version, version
+			buddy.send_packet :client,  client
+			buddy.send_packet :version, version
 
-			send_packet :add_me
+			buddy.send_packet :add_me
 
-			send_packet :status,  :available
+			buddy.send_packet :status,  :available
 		end
 
 		on :profile_name do |packet, buddy|
