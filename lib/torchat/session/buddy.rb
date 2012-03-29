@@ -77,7 +77,13 @@ class Buddy
 		send_packet :message, text
 	end
 
+	def connecting?; @connecting; end
+
 	def connect
+		return if connecting?
+
+		@connecting = true
+
 		EM.connect session.tor.host, session.tor.port, Outgoing do |outgoing|
 			own! outgoing
 

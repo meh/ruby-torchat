@@ -32,7 +32,9 @@ class Session
 	def initialize (config)
 		@config = config
 
-		@status = :available
+		@status      = :available
+		@name        = config['name']
+		@description = config['description']
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@buddies   = Buddies.new
@@ -41,6 +43,9 @@ class Session
 		on :verification do |buddy|
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
+
+			buddy.send_packet :profile_name, name        if name
+			buddy.send_packet :profile_text, description if description
 
 			buddy.send_packet :add_me
 
