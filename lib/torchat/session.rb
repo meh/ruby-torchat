@@ -68,7 +68,7 @@ class Session
 			buddy.avatar.rgb = packet.data
 		end
 
-		set_interval 30 do
+		set_interval 120 do
 			buddies.each_value {|buddy|
 				buddy.send_packet :status, status
 			}
