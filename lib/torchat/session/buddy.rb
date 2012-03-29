@@ -40,15 +40,19 @@ class Buddy
 		@address = "#{@id}.onion"
 		@avatar  = Avatar.new
 
-		@incoming = incoming
-		@outgoing = outgoing
+		own! incoming
+		own! outgoing
 
 		connect unless @outgoing
-
-		own!
 	end
 
-	def own!
+	def own! (what)
+		if what.is_a? Incoming
+			@incoming = what
+		elsif what.is_a? Outgoing
+			@outgoing = what
+		end
+
 		@incoming.owner = self if @incoming
 		@outgoing.owner = self if @outgoing
 	end
@@ -75,10 +79,12 @@ class Buddy
 
 	def connect
 		EM.connect session.tor.host, session.tor.port, Outgoing do |outgoing|
-			@outgoing = outgoing
-		end
+			own! outgoing
 
-		own!
+			outgoing.instance_variable_set :@session, session
+
+			session.fire :outgoing, outgoing
+		end
 	end
 
 	def connected?; @connected; end

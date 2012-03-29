@@ -14,6 +14,14 @@ end.parse!
 
 EM.run {
 	Torchat.new(options[:config]).start {|s|
+		s.on :incoming do |incoming|
+			puts "incoming connection from #{incoming}"
+		end
+
+		s.on :outgoing do |outgoing|
+			puts "outgoing connection to #{outgoing}"
+		end
+
 		s.on :connection do |buddy|
 			puts "#{buddy.id} connected"
 		end

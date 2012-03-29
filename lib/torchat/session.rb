@@ -121,14 +121,16 @@ class Session
 	end
 
 	def received (packet)
-		@callbacks[packet.type].each {|block|
-			block.call(packet, packet.from)
-		}
+		fire packet.type, packet, packet.from
 	end
 
 	def fire (name, *args, &block)
 		@callbacks[name].each {|block|
-			block.call *args, &block
+			begin
+				block.call *args, &block
+			rescue => e
+				Torchat.debug e
+			end
 		}
 	end
 
@@ -136,10 +138,10 @@ class Session
 		host ||= @config['connection']['incoming']['host']
 		port ||= @config['connection']['incoming']['port'].to_i
 
-		zelf = self
-
 		@signature = EM.start_server host, port, Incoming do |incoming|
-			incoming.instance_eval { @session = zelf }
+			incoming.instance_variable_set :@session, self
+
+			fire :incoming, incoming
 		end
 	end
 

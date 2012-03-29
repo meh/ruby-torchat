@@ -31,7 +31,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			return
 		end
 
-		puts "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}"
+		Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
 		if packet.type == :ping
 			if !packet.valid? || @last_ping_address && packet.address != @last_ping_address
@@ -70,6 +70,10 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def unbind
+		if error?
+			Torchat.debug "errno #{EM.report_connection_error_status(@signature)}", level: 2
+		end
+
 		@owner.disconnected if @owner
 	end
 end

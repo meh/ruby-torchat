@@ -66,12 +66,16 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 			args.first
 		end
 
-		puts ">> #{@owner ? @owner.id : 'unknown'} #{packet.inspect}"
+		Torchat.debug ">> #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
 		send_data packet.pack
 	end
 
 	def unbind
+		if error?
+			Torchat.debug "errno #{EM.report_connection_error_status(@signature)}", level: 2
+		end
+
 		@owner.disconnected
 	end
 end

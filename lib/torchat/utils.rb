@@ -17,28 +17,31 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'yaml'
-require 'digest/md5'
-
-require 'torchat/version'
-require 'torchat/utils'
-require 'torchat/session'
-require 'torchat/protocol'
-
 class Torchat
-	attr_reader :config, :session
+	def self.debug (argument, options = {})
+		return if !ENV['DEBUG'] && !options[:force]
 
-	def initialize (path)
-		@config = YAML.parse_file(path).transform
-	end
+		return if ENV['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
 
-	def start (&block)
-		@session = Session.new(@config, &block)
-		
-		@session.start
-	end
+		output = "[#{Time.new}] "
 
-	def send_packet_to (name, packet)
-		@session.buddies[name].send_packet(packet)
+		if argument.is_a?(Exception)
+			output << "From: #{caller[0, options[:deep] || 1].join("\n")}\n"
+			output << "#{argument.class}: #{argument.message}\n"
+			output << argument.backtrace.collect {|stack|
+				stack
+			}.join("\n")
+			output << "\n\n"
+		elsif argument.is_a?(String)
+			output << "#{argument}\n"
+		else
+			output << "#{argument.inspect}\n"
+		end
+
+		if options[:separator]
+			output << options[:separator]
+		end
+
+		$stderr.puts output
 	end
 end
