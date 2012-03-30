@@ -31,12 +31,12 @@ class Buddies < Hash
 	end
 
 	def [] (name)
-		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.alias || name === b.name }
+		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.name }
 	end
 
 	def []= (name, buddy)
 		unless Protocol.valid_address?(name)
-			name = find { |a, b| name === b.alias || name === b.name }.id
+			name = find { |a, b| name === b.name }.id
 		end
 
 		name = name[/^(.*?)(\.onion)?$/, 1]

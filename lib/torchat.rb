@@ -19,7 +19,6 @@
 
 require 'yaml'
 require 'iniparse'
-require 'digest/md5'
 require 'fileutils'
 
 require 'torchat/version'
@@ -29,12 +28,10 @@ require 'torchat/protocol'
 
 class Torchat
 	def self.profile (name = nil)
-		dir = "~/.torchat#{"_#{name}" if name}"
+		FileUtils.mkpath(directory = "~/.torchat#{"_#{name}" if name}")
 
-		FileUtils.mkpath dir
-
-		new("#{dir}/torchat.ini").tap {|t|
-			t.buddy_list_at "#{dir}/buddy-list.txt"
+		new("#{directory}/torchat.ini").tap {|t|
+			t.buddy_list_at "#{directory}/buddy-list.txt"
 		}
 	end
 
@@ -64,6 +61,16 @@ class Torchat
 		elsif type == :yaml || path.end_with?('yml') || File.read(File.expand_path(path, 3)) == '---'
 			@config = YAML.parse_file(path).transform
 		end
+	end
+
+	def method_missing (id, *args, &block)
+		return @session.__send__ id, *args, &block if @session.respond_to? id
+
+		super
+	end
+
+	def respond_to_missing? (id)
+		@session.respond_to? id
 	end
 
 	def start (&block)

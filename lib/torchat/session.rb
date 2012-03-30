@@ -63,6 +63,14 @@ class Session
 			remove_buddy buddy
 		end
 
+		on :client do |packet, buddy|
+			buddy.client.name = packet.to_str
+		end
+
+		on :version do |packet, buddy|
+			buddy.client.version = packet.to_str
+		end
+
 		on :profile_name do |packet, buddy|
 			buddy.name = packet.to_str
 		end
@@ -161,7 +169,7 @@ class Session
 	end
 
 	def on (what, &block)
-		@callbacks[what] << block
+		@callbacks[what.to_sym.downcase] << block
 	end
 
 	alias when on
@@ -171,7 +179,7 @@ class Session
 	end
 
 	def fire (name, *args, &block)
-		@callbacks[name].each {|block|
+		@callbacks[name.to_sym.downcase].each {|block|
 			begin
 				block.call *args, &block
 			rescue => e

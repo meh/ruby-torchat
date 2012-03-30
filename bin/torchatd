@@ -6,9 +6,19 @@ options = {}
 
 OptionParser.new do |o|
 	options[:config] = File.expand_path '~/.torchat/torchat.yml'
+	options[:host]   = '127.0.0.1'
+	options[:port]   = 11111
 
 	o.on '-c', '--config PATH', 'the path to the config file' do |path|
 		options[:config] = path
+	end
+
+	o.on '-h', '--host HOST', 'the host to listen on' do |ip|
+		options[:host] = ip
+	end
+
+	o.on '-p', '--port PORT', 'the port to listen on' do |port|
+		options[:port] = port
 	end
 end.parse!
 
@@ -20,33 +30,113 @@ end.parse!
 	end
 }
 
+class Torchatd
+	class Connection < EventMachine::Protocols::LineAndTextProtocol
+		def receive_line (line)
+			@daemon.process line
+		end
+
+		def unbind
+			@daemon.connections.delete self
+		end
+	end
+
+	attr_reader   :connections
+	attr_accessor :profile
+
+	def initialize
+		@connections = []
+
+		yield self if block_given?
+	end
+
+	def start (host, port)
+		@signature = EM.start_server host, port, Connection do |conn|
+			@connections << conn
+
+			conn.instance_variable_set :@daemon, self
+		end
+	end
+
+	def stop
+		EM.stop_server @signature
+	end
+
+	def process (line)
+		command, rest = line.split(' ', 2)
+
+		case command.downcase.to_sym
+		when :message
+			profile.send_message_to *rest.split(' ', 2)
+
+		end
+	rescue => e
+		Torchat.debug e
+	end
+
+	def received (packet)
+		if packet.type == :message
+			send_everyone "MESSAGE #{packet.from.id} #{packet}"
+		end
+	end
+
+	def connected (buddy)
+		send_everyone "CONNECTED #{buddy.id}"
+
+		if buddy.client.name
+			send_everyone "CLIENT #{buddy.id} #{buddy.client.name} #{buddy.client.version}"
+		end
+	end
+
+	def disconnected (buddy)
+		send_everyone "DISCONNECTED #{buddy.id}"
+	end
+
+	def send_everyone (text)
+		@connections.each {|connection|
+			connection.send_data "#{text}\n"
+		}
+	end
+end
 
 EM.run {
-	Torchat.new(options[:config]).start {|s|
-		s.on :incoming do |incoming|
-			puts "incoming connection from #{incoming}"
-		end
+	Torchatd.new {|d|
+		(d.profile = Torchat.new(options[:config])).start {|s|
+			s.on :incoming do |incoming|
+				Torchat.debug "incoming connection from #{incoming}"
+			end
 
-		s.on :outgoing do |outgoing|
-			puts "outgoing connection to #{outgoing}"
-		end
+			s.on :outgoing do |outgoing|
+				Torchat.debug "outgoing connection to #{outgoing}"
+			end
 
-		s.on :connection do |buddy|
-			puts "#{buddy.id} connected"
-		end
+			s.on :connection do |buddy|
+				Torchat.debug "#{buddy.id} connected"
+			end
 
-		s.on :verification do |buddy|
-			puts "#{buddy.id} has been verified"
-		end
+			s.on :verification do |buddy|
+				Torchat.debug "#{buddy.id} has been verified"
+			end
 
-		s.on :disconnection do |buddy|
-			puts "#{buddy.id} disconnected"
-		end
+			s.on :ready do |buddy|
+				d.connected buddy
+			end
 
-		s.on :message do |message|
+			s.on :disconnection do |buddy|
+				Torchat.debug "#{buddy.id} disconnected"
 
-		end
-	}
+				d.disconnected buddy
+			end
+
+			s.on :message do |packet|
+				d.received packet
+			end
+
+			so.on :status do |packet|
+				d.received packet
+			end
+		}
+	}.start(options[:host], options[:port])
 
 	puts 'torchatd started'
 }

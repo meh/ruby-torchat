@@ -17,15 +17,33 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/avatar'
-
 require 'torchat/session/incoming'
 require 'torchat/session/outgoing'
 
 class Torchat; class Session
 
 class Buddy
-	attr_reader   :session, :id, :address, :avatar
+	class Avatar
+		attr_writer :rgb, :alpha
+
+		def to_image
+			return unless @rgb
+
+			require 'RMagick'
+
+			Magick::Image.new(64, 64).tap {|image|
+				@rgb.bytes.each_slice(3).with_index {|(r, g, b), index|
+					x, y = index % 64, index / 64
+
+					image.pixel_color(x, y, Magick::Pixel.new(r, g, b, @alpha ? @alpha[index] : nil))
+				}
+			}
+		end
+	end
+
+	Client = Struct.new(:name, :version)
+
+	attr_reader   :session, :id, :address, :avatar, :client
 	attr_accessor :name, :description
 
 	def port; 11009; end
@@ -39,6 +57,7 @@ class Buddy
 		@id      = id[/^(.*?)(\.onion)?$/, 1]
 		@address = "#{@id}.onion"
 		@avatar  = Avatar.new
+		@client  = Client.new
 
 		own! incoming
 		own! outgoing
