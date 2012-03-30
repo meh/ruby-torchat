@@ -43,6 +43,10 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@last_ping_address = packet.address
 
+			if buddy = @session.buddies[packet.address]
+				buddy.own! self
+			end
+
 			if @owner
 				@owner.send_packet :pong, packet.cookie
 			else

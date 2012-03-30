@@ -55,6 +55,10 @@ class Session
 			buddy.send_packet :status, status
 		end
 
+		on :add_me do |packet, buddy|
+			fire :ready, buddy
+		end
+
 		on :remove_me do |packet, buddy|
 			remove_buddy buddy
 		end
@@ -133,10 +137,13 @@ class Session
 
 	def add_buddy (id)
 		buddy = if id.is_a? Buddy
-			buddies << id
+			id
 		else
-			buddies << Buddy.new(self, id)
+			Buddy.new(self, id)
 		end
+
+		buddies << buddy
+		buddy.connect
 
 		buddy
 	end
@@ -156,6 +163,8 @@ class Session
 	def on (what, &block)
 		@callbacks[what] << block
 	end
+
+	alias when on
 
 	def received (packet)
 		fire packet.type, packet, packet.from

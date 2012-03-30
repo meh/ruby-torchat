@@ -100,7 +100,7 @@ class Packet
 		end
 
 		def pack
-			super(@internal)
+			super(@internal.to_s)
 		end
 
 		def inspect

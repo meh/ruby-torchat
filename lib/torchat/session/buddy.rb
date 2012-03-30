@@ -46,6 +46,16 @@ class Buddy
 		connect unless @outgoing
 	end
 
+	def on (what, &block)
+		session.on what do |*args|
+			if (args.first.is_a?(Buddy) && args.first == self) || (args.first.is_a?(Protocol::Packet) && args.first.from == self)
+				block.call(*args)
+			end
+		end
+	end
+
+	alias when on
+
 	def own! (what)
 		if what.is_a? Incoming
 			@incoming = what
