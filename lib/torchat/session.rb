@@ -25,14 +25,13 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader   :config, :buddies, :id, :name, :description
-	attr_writer   :client, :version
-	attr_accessor :status
+	attr_reader :config, :buddies, :id, :name, :description, :status
+	attr_writer :client, :version
 
 	def initialize (config)
 		@config = config
 
-		@status      = :available
+		@status = :available
 
 		@id          = @config['id'][/^(.*?)(\.onion)?$/, 1]
 		@name        = config['name']
@@ -117,6 +116,18 @@ class Session
 
 		buddies.each {|buddy|
 			buddy.send_packet :profile_text, value
+		}
+	end
+
+	def status= (value)
+		unless Protocol::Status.valid?(value)
+			raise ArgumentError, "#{value} is not a valid status"
+		end
+
+		@status = value.to_sym.downcase
+
+		buddies.each {|buddy|
+			buddy.send_packet :status, @status
 		}
 	end
 

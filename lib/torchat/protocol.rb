@@ -177,20 +177,28 @@ class Version < Packet::SingleValue
 end
 
 class Status < Packet::SingleValue
+	def self.valid? (name)
+		%w(available away xa).include?(name.to_s.downcase)
+	end
+
 	def initialize (name)
-		@internal = name.to_s.downcase
+		unless Status.valid?(name)
+			raise ArgumentError, "#{name} is not a valid status"
+		end
+
+		@internal = name.to_sym.downcase
 	end
 
 	def available?
-		@internal == 'available'
+		@internal == :available
 	end
 
 	def away?
-		@internal == 'away'
+		@internal == :away
 	end
 
 	def extended_away?
-		@internal == 'xa'
+		@internal == :xa
 	end
 end
 
