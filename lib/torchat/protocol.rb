@@ -202,6 +202,14 @@ class Status < Packet::SingleValue
 	def extended_away?
 		@internal == :xa
 	end
+
+	def to_sym
+		@internal
+	end
+
+	def to_s
+		@internal.to_s
+	end
 end
 
 class ProfileName < Packet::SingleValue

@@ -44,7 +44,7 @@ class Buddy
 	Client = Struct.new(:name, :version)
 
 	attr_reader   :session, :id, :address, :avatar, :client
-	attr_accessor :name, :description
+	attr_accessor :name, :description, :status
 
 	def port; 11009; end
 

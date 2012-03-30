@@ -71,6 +71,10 @@ class Session
 			buddy.client.version = packet.to_str
 		end
 
+		on :status do |packet, buddy|
+			buddy.status = packet.to_sym
+		end
+
 		on :profile_name do |packet, buddy|
 			buddy.name = packet.to_str
 		end

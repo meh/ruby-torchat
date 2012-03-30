@@ -20,6 +20,10 @@ OptionParser.new do |o|
 	o.on '-p', '--port PORT', 'the port to listen on' do |port|
 		options[:port] = port
 	end
+
+	o.on '-s', '--ssl KEY:CERT', 'the private key and cert files' do |path|
+		options[:ssl] = { key: path.split(':').first, cert: path.split(':').last }
+	end
 end.parse!
 
 %w[INT KILL].each {|sig|
@@ -33,7 +37,13 @@ end.parse!
 class Torchatd
 	class Connection < EventMachine::Protocols::LineAndTextProtocol
 		def receive_line (line)
-			@daemon.process line
+			return if line.lstrip.empty?
+
+			@daemon.process self, line.lstrip
+		end
+
+		def send_response (text)
+			send_data "#{text.to_s.lstrip}\n"
 		end
 
 		def unbind
@@ -41,7 +51,7 @@ class Torchatd
 		end
 	end
 
-	attr_reader   :connections
+	attr_reader   :connections, :host, :port, :ssl
 	attr_accessor :profile
 
 	def initialize
@@ -50,7 +60,15 @@ class Torchatd
 		yield self if block_given?
 	end
 
-	def start (host, port)
+	def start (host, port, ssl = nil)
+		return if @started
+
+		@started = true
+
+		@host = host
+		@port = port
+		@ssl  = ssl
+
 		@signature = EM.start_server host, port, Connection do |conn|
 			@connections << conn
 
@@ -60,15 +78,32 @@ class Torchatd
 
 	def stop
 		EM.stop_server @signature
+
+		@started = false
 	end
 
-	def process (line)
-		command, rest = line.split(' ', 2)
+	def process (connection, line)
+		command, id, rest = line.split(' ', 3)
 
 		case command.downcase.to_sym
-		when :message
-			profile.send_message_to *rest.split(' ', 2)
+		when :starttls
+			if @ssl
+				connection.start_tls(private_key_file: @ssl[:key], cert_chain_file: @ssl[:cert])
+			else
+				connection.start_tls
+			end
 
+		when :message
+			profile.send_message_to id, rest
+
+		when :status
+			connection.send_response profile.buddies[id].status
+
+		when :list
+			connection.send_response profile.buddies.keys.join(' ')
+
+		else
+			connection.send_response 'UNIMPLEMENTED'
 		end
 	rescue => e
 		Torchat.debug e
@@ -76,25 +111,27 @@ class Torchatd
 
 	def received (packet)
 		if packet.type == :message
-			send_everyone "MESSAGE #{packet.from.id} #{packet}"
+			send_everyone "#{packet.from.id} MESSAGE #{packet}"
+		elsif packet.type == :status
+			send_everyone "#{packet.from.id} STATUS #{packet.to_s}"
 		end
 	end
 
 	def connected (buddy)
-		send_everyone "CONNECTED #{buddy.id}"
+		send_everyone "#{buddy.id} CONNECTED"
 
 		if buddy.client.name
-			send_everyone "CLIENT #{buddy.id} #{buddy.client.name} #{buddy.client.version}"
+			send_everyone "#{buddy.id} CLIENT #{buddy.client.name} #{buddy.client.version}"
 		end
 	end
 
 	def disconnected (buddy)
-		send_everyone "DISCONNECTED #{buddy.id}"
+		send_everyone "#{buddy.id} DISCONNECTED"
 	end
 
 	def send_everyone (text)
 		@connections.each {|connection|
-			connection.send_data "#{text}\n"
+			connection.send_response text
 		}
 	end
 end
@@ -132,11 +169,11 @@ EM.run {
 				d.received packet
 			end
 
-			so.on :status do |packet|
+			s.on :status do |packet|
 				d.received packet
 			end
 		}
-	}.start(options[:host], options[:port])
+	}.start(options[:host], options[:port], options[:ssl])
 
 	puts 'torchatd started'
 }

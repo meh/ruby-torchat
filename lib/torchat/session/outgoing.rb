@@ -29,13 +29,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def connection_completed
-		socksify(@owner.address, @owner.port) do
-			if socks_error?
-				@owner.disconnected
-			else
-				@owner.connected
-			end
-		end
+		socksify @owner.address, @owner.port, -> { @owner.connected }, -> { @owner.disconnected }
 	end
 
 	def verification_completed
