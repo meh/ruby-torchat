@@ -30,13 +30,13 @@ class Buddy
 
 	def port; 11009; end
 
-	def initialize (session, address, incoming = nil, outgoing = nil)
-		unless Protocol.valid_address?(address)
-			raise ArgumentError, "#{address} is an invalid onion id"
+	def initialize (session, id, incoming = nil, outgoing = nil)
+		unless Protocol.valid_address?(id)
+			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 
 		@session = session
-		@id      = address[/^(.*?)(\.onion)?$/, 1]
+		@id      = id[/^(.*?)(\.onion)?$/, 1]
 		@address = "#{@id}.onion"
 		@avatar  = Avatar.new
 
@@ -115,8 +115,6 @@ class Buddy
 		@verified = true
 
 		@outgoing.verification_completed
-
-		session.buddies << self
 
 		session.fire :verification, self
 	end

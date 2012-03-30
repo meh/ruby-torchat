@@ -1,7 +1,10 @@
 ---
-address:     7acbk6jpofsanyfp
+id:          7acbk6jpofsanyfp
 name:        Anonymous
 description: This is a description.
+
+buddies:
+  7acbk6jpofsanyfp: myself
 
 connection:
   outgoing:

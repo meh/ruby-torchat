@@ -12,6 +12,15 @@ OptionParser.new do |o|
 	end
 end.parse!
 
+%w[INT KILL].each {|sig|
+	trap sig do
+		puts 'torchatd stopping, bye'
+
+		EM.stop_event_loop
+	end
+}
+
+
 EM.run {
 	Torchat.new(options[:config]).start {|s|
 		s.on :incoming do |incoming|
@@ -39,5 +48,5 @@ EM.run {
 		end
 	}
 
-	puts 'TorChat started'
+	puts 'torchatd started'
 }

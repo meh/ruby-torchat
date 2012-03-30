@@ -16,4 +16,6 @@ Gem::Specification.new {|s|
 
 	s.add_dependency 'eventmachine', '>= 1.0.0.beta.4'
 	s.add_dependency 'em-socksify'
+
+	s.add_dependency 'iniparse'
 }

@@ -22,6 +22,14 @@ require 'torchat/session/buddy'
 class Torchat; class Session
 
 class Buddies < Hash
+	def has_key? (name)
+		!!self[name]
+	end
+
+	def delete (name)
+		super(self[name].id) rescue nil
+	end
+
 	def [] (name)
 		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.alias || name === b.name }
 	end

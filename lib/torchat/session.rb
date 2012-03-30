@@ -25,7 +25,7 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader   :config, :buddies, :name, :description
+	attr_reader   :config, :buddies, :id, :name, :description
 	attr_writer   :client, :version
 	attr_accessor :status
 
@@ -33,6 +33,8 @@ class Session
 		@config = config
 
 		@status      = :available
+
+		@id          = @config['id'][/^(.*?)(\.onion)?$/, 1]
 		@name        = config['name']
 		@description = config['description']
 
@@ -41,6 +43,8 @@ class Session
 		@timers    = []
 
 		on :verification do |buddy|
+			add_buddy buddy
+
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
 
@@ -50,6 +54,10 @@ class Session
 			buddy.send_packet :add_me
 
 			buddy.send_packet :status, status
+		end
+
+		on :remove_me do |packet, buddy|
+			remove_buddy buddy
 		end
 
 		on :profile_name do |packet, buddy|
@@ -75,10 +83,6 @@ class Session
 		end
 
 		yield self if block_given?
-	end
-
-	def id
-		@config['address'][/^(.*?)(\.onion)?$/, 1]
 	end
 
 	def address
@@ -114,11 +118,22 @@ class Session
 		buddies.each {|buddy|
 			buddy.send_packet :profile_text, value
 		}
-
 	end
 
-	def add_buddy (address)
-		buddies << Buddy.new(self, address)
+	def add_buddy (id)
+		if id.is_a? Buddy
+			buddies << id
+		else
+			buddies << Buddy.new(self, id)
+		end
+	end
+
+	def remove_buddy (id)
+		if id.is_a? Buddy
+			buddies.delete(buddies.key(id))
+		else
+			buddies.delete(id)
+		end.send_packet :remove_me
 	end
 
 	def on (what, &block)
