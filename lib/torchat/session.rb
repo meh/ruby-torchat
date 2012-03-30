@@ -42,15 +42,13 @@ class Session
 		@timers    = []
 
 		on :verification do |buddy|
-			add_buddy buddy
-
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
 
 			buddy.send_packet :profile_name, name        if name
 			buddy.send_packet :profile_text, description if description
 
-			buddy.send_packet :add_me
+			add_buddy buddy
 
 			buddy.send_packet :status, status
 		end
@@ -132,19 +130,27 @@ class Session
 	end
 
 	def add_buddy (id)
-		if id.is_a? Buddy
+		buddy = if id.is_a? Buddy
 			buddies << id
 		else
 			buddies << Buddy.new(self, id)
 		end
+		
+		buddy.send_packet :add_me
+
+		buddy
 	end
 
 	def remove_buddy (id)
-		if id.is_a? Buddy
+		buddy = if id.is_a? Buddy
 			buddies.delete(buddies.key(id))
 		else
 			buddies.delete(id)
-		end.send_packet :remove_me
+		end
+		
+		buddy.send_packet :remove_me
+
+		buddy
 	end
 
 	def on (what, &block)
