@@ -22,7 +22,7 @@ require 'digest/md5'
 class Torchat; module Protocol
 
 def self.valid_address? (address)
-	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}(\.onion)?$/)
+	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}(\.onion)?$/i)
 end
 
 def self.encode (data)
@@ -90,9 +90,7 @@ class Packet
 
 	class SingleValue < Packet
 		def self.unpack (data)
-			if data.nil? || data.empty?
-				raise ArgumentError, 'missing value for packet'
-			end
+			raise ArgumentError, 'missing value for packet' if data.nil?
 
 			new(data)
 		end
@@ -214,7 +212,7 @@ end
 
 class ProfileName < Packet::SingleValue
 	def initialize (name)
-		@internal = name.encode('UTF-8')
+		@internal = name.force_encoding('UTF-8')
 	end
 
 	def to_s
@@ -226,7 +224,7 @@ end
 
 class ProfileText < Packet::SingleValue
 	def initialize (text)
-		@internal = text.encode('UTF-8')
+		@internal = text.force_encoding('UTF-8')
 	end
 
 	def to_s
@@ -280,7 +278,7 @@ end
 
 class Message < Packet::SingleValue
 	def initialize (data)
-		@internal = data.encode('UTF-8')
+		@internal = data.force_encoding('UTF-8')
 	end
 
 	def to_s

@@ -7,7 +7,7 @@ options = {}
 OptionParser.new do |o|
 	options[:config] = File.expand_path '~/.torchat/torchat.yml'
 	options[:host]   = '127.0.0.1'
-	options[:port]   = 11111
+	options[:port]   = 11110
 
 	o.on '-c', '--config PATH', 'the path to the config file' do |path|
 		options[:config] = path
@@ -19,6 +19,10 @@ OptionParser.new do |o|
 
 	o.on '-p', '--port PORT', 'the port to listen on' do |port|
 		options[:port] = port
+	end
+
+	o.on '-P', '--password PASSWORD' do |password|
+		options[:password] = password
 	end
 
 	o.on '-s', '--ssl KEY:CERT', 'the private key and cert files' do |path|
@@ -36,6 +40,16 @@ end.parse!
 
 class Torchatd
 	class Connection < EventMachine::Protocols::LineAndTextProtocol
+		attr_accessor :daemon, :host, :port, :ssl
+
+		def authorized?; @authorized; end
+
+		def authorize!
+			@authorized = true
+
+			send_response 'AUTHORIZED'
+		end
+
 		def receive_line (line)
 			return if line.lstrip.empty?
 
@@ -51,10 +65,12 @@ class Torchatd
 		end
 	end
 
-	attr_reader   :connections, :host, :port, :ssl
+	attr_reader   :connections, :password
 	attr_accessor :profile
 
-	def initialize
+	def initialize (password = nil)
+		@password = password
+
 		@connections = []
 
 		yield self if block_given?
@@ -65,14 +81,17 @@ class Torchatd
 
 		@started = true
 
-		@host = host
-		@port = port
-		@ssl  = ssl
-
 		@signature = EM.start_server host, port, Connection do |conn|
 			@connections << conn
 
-			conn.instance_variable_set :@daemon, self
+			conn.daemon = self
+			conn.host   = host
+			conn.port   = port
+			conn.ssl    = ssl
+
+			unless @password
+				conn.authorize!
+			end
 		end
 	end
 
@@ -83,27 +102,76 @@ class Torchatd
 	end
 
 	def process (connection, line)
-		command, id, rest = line.split(' ', 3)
+		command, rest = line.split(' ', 2)
 
 		case command.downcase.to_sym
 		when :starttls
-			if @ssl
-				connection.start_tls(private_key_file: @ssl[:key], cert_chain_file: @ssl[:cert])
+			if connection.ssl
+				connection.start_tls(private_key_file: connection.ssl[:key], cert_chain_file: connection.ssl[:cert])
 			else
 				connection.start_tls
 			end
 
-		when :message
-			profile.send_message_to id, rest
+			return
+
+		when :pass
+			connection.authorize! if @password == rest
+
+			return
+		end
+
+		unless connection.authorized?
+			connection.send_response "UNAUTHORIZED #{command}"
+			return
+		end
+
+		case command.downcase.to_sym
+		when :list
+			connection.send_response "LIST #{profile.buddies.keys.join(' ')}"
 
 		when :status
-			connection.send_response profile.buddies[id].status
+			if Torchat::Protocol.valid_address?(rest)
+				if buddy = profile.buddies[rest]
+					connection.send_response "#{rest} STATUS #{buddy.status}"
+				end
+			else
+				profile.status = rest
+			end
 
-		when :list
-			connection.send_response profile.buddies.keys.join(' ')
+		when :client
+			if buddy = profile.buddies[rest]
+				if buddy.client.name
+					connection.send_response "#{rest} CLIENT_NAME #{buddy.client.name}" 
+				end
+
+				if buddy.client.version
+					connection.send_response "#{rest} CLIENT_VERSION #{buddy.client.version}"
+				end
+			end
+
+		when :name
+			if Torchat::Protocol.valid_address?(rest)
+				if buddy = profile.buddies[rest]
+					connection.send_response "#{rest} NAME #{buddy.name}"
+				end
+			else
+				profile.name = rest
+			end
+
+		when :description
+			if Torchat::Protocol.valid_address?(rest)
+				if buddy = profile.buddies[rest]
+					connection.send_response "#{rest} DESCRIPTION #{buddy.description}"
+				end
+			else
+				profile.description = rest
+			end
+
+		when :message
+			profile.send_message_to *rest.split(' ', 2)
 
 		else
-			connection.send_response 'UNIMPLEMENTED'
+			connection.send_response "UNIMPLEMENTED #{command}"
 		end
 	rescue => e
 		Torchat.debug e
@@ -113,15 +181,32 @@ class Torchatd
 		if packet.type == :message
 			send_everyone "#{packet.from.id} MESSAGE #{packet}"
 		elsif packet.type == :status
-			send_everyone "#{packet.from.id} STATUS #{packet.to_s}"
+			send_everyone "#{packet.from.id} STATUS #{packet}"
+		elsif packet.type == :client
+			send_everyone "#{packet.from.id} CLIENT_NAME #{packet}"
+		elsif packet.type == :version
+			send_everyone "#{packet.from.id} CLIENT_VERSION #{packet}"
+		elsif packet.type == :profile_name && !packet.to_s.empty?
+			send_everyone "#{packet.from.id} NAME #{packet}"
+		elsif packet.type == :profile_text && !packet.to_s.empty?
+			send_everyone "#{packet.from.id} DESCRIPTION #{packet}"
+		elsif packet.type == :remove_me
+			send_everyone "#{packet.from.id} REMOVE"
 		end
 	end
 
 	def connected (buddy)
 		send_everyone "#{buddy.id} CONNECTED"
 
+		send_everyone "#{buddy.id} NAME #{buddy.name}"               if buddy.name
+		send_everyone "#{buddy.id} DESCRIPTION #{buddy.description}" if buddy.description
+
 		if buddy.client.name
-			send_everyone "#{buddy.id} CLIENT #{buddy.client.name} #{buddy.client.version}"
+			send_everyone "#{buddy.id} CLIENT_NAME #{buddy.client.name}"
+		end
+
+		if buddy.client.version
+			send_everyone "#{buddy.id} CLIENT_VERSION #{buddy.client.version}"
 		end
 	end
 
@@ -129,15 +214,17 @@ class Torchatd
 		send_everyone "#{buddy.id} DISCONNECTED"
 	end
 
-	def send_everyone (text)
+	def send_everyone (text, even_unauthorized = false)
 		@connections.each {|connection|
+			next unless connection.authorized? || even_unauthorized
+
 			connection.send_response text
 		}
 	end
 end
 
 EM.run {
-	Torchatd.new {|d|
+	Torchatd.new(options[:password]) {|d|
 		(d.profile = Torchat.new(options[:config])).start {|s|
 			s.on :incoming do |incoming|
 				Torchat.debug "incoming connection from #{incoming}"
@@ -165,13 +252,11 @@ EM.run {
 				d.disconnected buddy
 			end
 
-			s.on :message do |packet|
-				d.received packet
-			end
-
-			s.on :status do |packet|
-				d.received packet
-			end
+			%w(message status client version profile_name profile_text add_me remove_me).each {|type|
+				s.on type do |packet|
+					d.received packet
+				end
+			}
 		}
 	}.start(options[:host], options[:port], options[:ssl])
 

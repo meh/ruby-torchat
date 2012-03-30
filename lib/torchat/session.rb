@@ -76,11 +76,11 @@ class Session
 		end
 
 		on :profile_name do |packet, buddy|
-			buddy.name = packet.to_str
+			buddy.name = packet.to_str unless packet.to_str.empty?
 		end
 
 		on :profile_text do |packet, buddy|
-			buddy.description = packet.to_str
+			buddy.description = packet.to_str unless packet.to_str.empty?
 		end
 
 		on :profile_avatar_alpha do |packet, buddy|
@@ -122,7 +122,7 @@ class Session
 	def name= (value)
 		@name = value
 
-		buddies.each {|buddy|
+		buddies.each_value {|buddy|
 			buddy.send_packet :profile_name, value
 		}
 	end
@@ -130,7 +130,7 @@ class Session
 	def description= (value)
 		@description = value
 
-		buddies.each {|buddy|
+		buddies.each_value {|buddy|
 			buddy.send_packet :profile_text, value
 		}
 	end
@@ -142,7 +142,7 @@ class Session
 
 		@status = value.to_sym.downcase
 
-		buddies.each {|buddy|
+		buddies.each_value {|buddy|
 			buddy.send_packet :status, @status
 		}
 	end
@@ -168,6 +168,7 @@ class Session
 		end
 		
 		buddy.send_packet :remove_me
+		buddy.disconnect
 
 		buddy
 	end
