@@ -42,13 +42,15 @@ class Session
 		@timers    = []
 
 		on :verification do |buddy|
+			add_buddy buddy
+
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
 
 			buddy.send_packet :profile_name, name        if name
 			buddy.send_packet :profile_text, description if description
 
-			add_buddy buddy
+			buddy.send_packet :add_me
 
 			buddy.send_packet :status, status
 		end
@@ -135,8 +137,6 @@ class Session
 		else
 			buddies << Buddy.new(self, id)
 		end
-		
-		buddy.send_packet :add_me
 
 		buddy
 	end

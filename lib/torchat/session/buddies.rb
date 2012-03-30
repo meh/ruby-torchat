@@ -36,7 +36,7 @@ class Buddies < Hash
 
 	def []= (name, buddy)
 		unless Protocol.valid_address?(name)
-			name = find { |a, b| name === b.alias || name === b.name }.address
+			name = find { |a, b| name === b.alias || name === b.name }.id
 		end
 
 		name = name[/^(.*?)(\.onion)?$/, 1]
@@ -45,7 +45,7 @@ class Buddies < Hash
 	end
 
 	def << (buddy)
-		self[buddy.address] = buddy
+		self[buddy.id] = buddy
 	end
 end
 
