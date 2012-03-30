@@ -26,6 +26,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		packet = begin
 			Protocol::Packet.from(@owner, line.chomp)
 		rescue => e
+			Torchat.debug line.inspect
 			Torchat.debug e
 
 			return
