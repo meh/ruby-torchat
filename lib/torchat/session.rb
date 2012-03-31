@@ -55,7 +55,11 @@ class Session
 			buddy.send_packet :status, status
 		end
 
-		on :add_me do |packet, buddy|
+		on :status do |packet, buddy|
+			next if buddy.ready?
+
+			buddy.ready!
+
 			fire :ready, buddy
 		end
 
@@ -157,6 +161,9 @@ class Session
 		end
 
 		buddies << buddy
+
+		fire :added, buddy
+
 		buddy.connect
 
 		buddy
@@ -172,6 +179,9 @@ class Session
 		end
 
 		buddy.send_packet :remove_me
+
+		fire :removed, buddy
+
 		buddy.disconnect
 
 		buddy

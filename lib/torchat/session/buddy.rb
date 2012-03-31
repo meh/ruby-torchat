@@ -106,6 +106,9 @@ class Buddy
 		send_packet :message, text
 	end
 
+	def ready?; @ready;        end
+	def ready!; @ready = true; end
+
 	def connecting?; @connecting; end
 
 	def connect

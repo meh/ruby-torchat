@@ -93,10 +93,8 @@ class Torchat
 
 	def stop
 		if @buddy_list
-			@session.buddies.each {|buddy|
-				next if @config['buddies'] && @config['buddies'][buddy.id]
-
-				File.open(@buddy_list, 'w') {|f|
+			File.open(@buddy_list, 'w') {|f|
+				@session.buddies.each {|buddy|
 					f.puts "#{buddy.id} #{buddy.name}"
 				}
 			}

@@ -184,6 +184,8 @@ class Torchatd
 	end
 
 	def received (packet)
+		return unless connected?
+
 		if packet.type == :message
 			send_everyone "#{packet.from.id} MESSAGE #{packet}"
 		elsif packet.type == :status
@@ -201,8 +203,12 @@ class Torchatd
 		end
 	end
 
+	def connected?; @connected; end
+
 	def connected (buddy)
 		send_everyone "#{buddy.id} CONNECTED"
+
+		@connected = true
 
 		send_everyone "#{buddy.id} NAME #{buddy.name}"               if buddy.name
 		send_everyone "#{buddy.id} DESCRIPTION #{buddy.description}" if buddy.description
@@ -218,6 +224,12 @@ class Torchatd
 
 	def disconnected (buddy)
 		send_everyone "#{buddy.id} DISCONNECTED"
+
+		@connected = false
+	end
+
+	def removed (buddy)
+		send_everyone "#{buddy.id} REMOVE"
 	end
 
 	def send_everyone (text, even_unauthorized = false)
@@ -248,8 +260,12 @@ EM.run {
 				Torchat.debug "#{buddy.id} has been verified"
 			end
 
-			s.on :ready do |buddy|
+			s.when :ready do |buddy|
 				d.connected buddy
+			end
+
+			s.when :removed do |buddy|
+				d.removed buddy
 			end
 
 			s.on :disconnection do |buddy|
