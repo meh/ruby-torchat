@@ -50,7 +50,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			if @owner
 				@owner.send_packet :pong, packet.cookie
 			else
-				if @session.buddies.has_key?(packet.address)
+				if buddy = @session.buddies[packet.address] && buddy.online?
 					close_connection_after_writing
 					
 					return
@@ -79,7 +79,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			Torchat.debug "errno #{EM.report_connection_error_status(@signature)}", level: 2
 		end
 
-		@owner.disconnected if @owner
+		@owner.disconnect if @owner
 	end
 end
 

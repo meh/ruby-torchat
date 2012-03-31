@@ -25,8 +25,9 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader :config, :buddies, :id, :name, :description, :status
-	attr_writer :client, :version
+	attr_reader   :config, :buddies, :id, :name, :description, :status
+	attr_writer   :client, :version
+	attr_accessor :connection_timeout
 
 	def initialize (config)
 		@config = config
@@ -40,6 +41,8 @@ class Session
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@buddies   = Buddies.new
 		@timers    = []
+
+		@connection_timeout = 120
 
 		on :verification do |buddy|
 			add_buddy buddy
@@ -97,7 +100,15 @@ class Session
 
 		set_interval 120 do
 			buddies.each_value {|buddy|
-				buddy.send_packet :status, status
+				buddy.send_packet :status, status if buddy.online?
+			}
+		end
+
+		set_interval 30 do
+			buddies.each_value {|buddy|
+				next unless buddy.offline? && !buddy.connecting?
+
+				buddy.connect
 			}
 		end
 
@@ -152,7 +163,7 @@ class Session
 	end
 
 	def add_buddy (id)
-		return if buddies.has_key? id
+		return if self.id == id || buddies.has_key?(id)
 
 		buddy = if id.is_a? Buddy
 			id

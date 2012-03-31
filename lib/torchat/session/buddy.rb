@@ -44,7 +44,8 @@ class Buddy
 	Client = Struct.new(:name, :version)
 
 	attr_reader   :session, :id, :address, :avatar, :client
-	attr_accessor :name, :description, :status
+	attr_writer   :status
+	attr_accessor :name, :description
 
 	def port; 11009; end
 
@@ -63,6 +64,10 @@ class Buddy
 		own! outgoing
 
 		connect unless @outgoing
+	end
+
+	def status
+		online? ? @status : :offline
 	end
 
 	def on (what, &block)
@@ -106,13 +111,16 @@ class Buddy
 		send_packet :message, text
 	end
 
+	def online?; connected?; end
+	def offline?; !online?;  end
+
 	def ready?; @ready;        end
 	def ready!; @ready = true; end
 
 	def connecting?; @connecting; end
 
 	def connect
-		return if connecting?
+		return if connecting? || connected?
 
 		@connecting = true
 
@@ -120,6 +128,8 @@ class Buddy
 			own! outgoing
 
 			outgoing.instance_variable_set :@session, session
+
+			outgoing.pending_connect_timeout = session.connection_timeout
 
 			session.fire :outgoing, outgoing
 		end
@@ -130,7 +140,8 @@ class Buddy
 	def connected
 		return if connected?
 
-		@connected = true
+		@connecting = false
+		@connected  = true
 
 		send_packet! :ping, session.address
 
@@ -152,22 +163,22 @@ class Buddy
 	end
 
 	def disconnect
+		return if disconnected?
+
 		@incoming.close_connection_after_writing if @incoming
 		@outgoing.close_connection_after_writing if @outgoing
-
-		session.buddies.delete(session.buddies.key(self))
 
 		@outgoing = @incoming = nil
 
 		disconnected
 	end
 
-	def disconnected?; @disconnected; end
+	def disconnected?; !@connected; end
 
 	def disconnected
 		return if disconnected?
 
-		@disconnected = true
+		@verified = @ready = @connecting = @connected = false
 
 		disconnect
 

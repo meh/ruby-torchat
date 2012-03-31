@@ -5,20 +5,22 @@ require 'torchat'
 options = {}
 
 OptionParser.new do |o|
-	options[:config] = File.expand_path '~/.torchat/torchat.yml'
-	options[:host]   = '127.0.0.1'
-	options[:port]   = 11110
+	options[:host] = '127.0.0.1'
+	options[:port] = 11110
+
+	o.on '-p', '--profile NAME', 'the profile name' do |name|
+		options[:profile] = name
+	end
 
 	o.on '-c', '--config PATH', 'the path to the config file' do |path|
 		options[:config] = path
 	end
 
-	o.on '-h', '--host HOST', 'the host to listen on' do |ip|
-		options[:host] = ip
-	end
+	o.on '-l', '--listen HOST:PORT', 'the host and port to listen on' do |value|
+		host, port = value.split(':')
 
-	o.on '-p', '--port PORT', 'the port to listen on' do |port|
-		options[:port] = port
+		options[:host] = host      if host
+		options[:port] = port.to_i if port
 	end
 
 	o.on '-P', '--password PASSWORD' do |password|
@@ -184,7 +186,7 @@ class Torchatd
 	end
 
 	def received (packet)
-		return unless connected?
+		return unless packet.from.ready?
 
 		if packet.type == :message
 			send_everyone "#{packet.from.id} MESSAGE #{packet}"
@@ -208,8 +210,6 @@ class Torchatd
 	def connected (buddy)
 		send_everyone "#{buddy.id} CONNECTED"
 
-		@connected = true
-
 		send_everyone "#{buddy.id} NAME #{buddy.name}"               if buddy.name
 		send_everyone "#{buddy.id} DESCRIPTION #{buddy.description}" if buddy.description
 
@@ -224,8 +224,6 @@ class Torchatd
 
 	def disconnected (buddy)
 		send_everyone "#{buddy.id} DISCONNECTED"
-
-		@connected = false
 	end
 
 	def removed (buddy)
@@ -243,13 +241,13 @@ end
 
 EM.run {
 	Torchatd.new(options[:password]) {|d|
-		(d.profile = Torchat.new(options[:config])).start {|s|
+		(d.profile = (options[:config] ? Torchat.new(options[:config]) : Torchat.profile(options[:profile]))).start {|s|
 			s.on :incoming do |incoming|
-				Torchat.debug "incoming connection from #{incoming}"
+				Torchat.debug "incoming connection"
 			end
 
 			s.on :outgoing do |outgoing|
-				Torchat.debug "outgoing connection to #{outgoing}"
+				Torchat.debug "outgoing connection"
 			end
 
 			s.on :connection do |buddy|

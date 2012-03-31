@@ -70,7 +70,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 			Torchat.debug "errno #{EM.report_connection_error_status(@signature)}", level: 2
 		end
 
-		@owner.disconnected
+		@owner.disconnect
 	end
 end
 

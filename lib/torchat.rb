@@ -37,29 +37,29 @@ class Torchat
 
 	attr_reader :config, :profile, :session
 
-	def initialize (path, type = nil)
-		if type == :ini || path.end_with?('ini')
+	def initialize (path)
+		@config = if path.end_with?('ini')
 			ini = IniParse.parse(File.read(File.expand_path(path)))
 
-			@config = {}.tap {|config|
-				config['address']     = ini[:client][:own_hostname]
-				config['name']        = ini[:profile][:name]
-				config['description'] = ini[:profile][:text]
+			{
+				'address'     => ini[:client][:own_hostname],
+				'name'        => ini[:profile][:name],
+				'description' => ini[:profile][:text],
 
-				config['connection'] = {}.tap {|connection|
-					connection['outgoing'] = {}.tap {|outgoing|
-						outgoing['host'] = ini[:tor_portable][:tor_server]
-						outgoing['port'] = ini[:tor_portable][:tor_server_socks_port]
-					}
+				'connection' => {
+					'outgoing' => {
+						'host' => ini[:tor_portable][:tor_server],
+						'port' => ini[:tor_portable][:tor_server_socks_port]
+					},
 
-					connection['incoming'] = {}.tap {|incoming|
-						incoming['host'] = ini[:client][:listen_interface]
-						incoming['port'] = ini[:client][:listen_port]
+					'incoming' => {
+						'host' => ini[:client][:listen_interface],
+						'port' => ini[:client][:listen_port]
 					}
 				}
 			}
-		elsif type == :yaml || path.end_with?('yml') || File.read(File.expand_path(path, 3)) == '---'
-			@config = YAML.parse_file(path).transform
+		else
+			YAML.parse_file(path).transform
 		end
 	end
 
@@ -78,13 +78,15 @@ class Torchat
 
 		@session.start
 
+		if @config['buddies']
+			@config['buddies'].each {|id|
+				@session.add_buddy id
+			}
+		end
+
 		if @buddy_list
 			File.read(@buddy_list).lines.each {|line|
 				whole, id, name = line.match(/^(.*?) (.*?)$/).to_a
-
-				if @config['buddies'] && @config['buddies'][id]
-					@config['buddies'].delete(id)
-				end
 
 				@session.add_buddy id
 			}
