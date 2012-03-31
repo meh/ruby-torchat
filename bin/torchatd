@@ -270,13 +270,15 @@ EM.run {
 						File.open('torrc.txt', 'w') { |f| f.print d.profile.torrc }
 					end
 
-					EM.system 'tor -f torrc.txt', proc { }, proc {|data|
+					EM.system 'tor -f torrc.txt', proc { }, proc {|data, status|
 						Dir.chdir path do
 							File.open('tor.log', 'w') { |f| f.print data }
 						end
+
+						abort 'the tor instance exited with errors' unless status.success?
 					}
 
-					exit 'could not load the onion id' if 20.times {
+					abort 'could not load the onion id' if 20.times {
 						if File.exists? 'hidden_service/hostname'
 							d.profile.config['id'] = File.read('hidden_service/hostname')
 
