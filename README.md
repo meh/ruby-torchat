@@ -12,6 +12,11 @@ Setup the daemon
 The daemon to work needs a tor configured with a hidden service, you can leave it automatic by
 passing `-t` as an option or you can configure it yourself.
 
+If you have an already created default TorChat session you just have to run `torchatd -t`, it
+will do all is needed, and you'll be able to connect to it on port `11110`. If you use bitlbee
+you just have to add the account, you can also pass a password with `-P password` which will have
+to be the password you added the account with.
+
 The daemon has a helper function to generate the needed tor configuration file based either
 on a YAML file or a TorChat configuration file.
 
