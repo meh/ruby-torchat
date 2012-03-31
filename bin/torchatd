@@ -129,6 +129,12 @@ class Torchatd
 		when :list
 			connection.send_response "LIST #{profile.buddies.keys.join(' ')}"
 
+		when :remove
+			profile.remove_buddy rest
+
+		when :add
+			profile.add_buddy rest
+
 		when :status
 			if Torchat::Protocol.valid_address?(rest)
 				if buddy = profile.buddies[rest]

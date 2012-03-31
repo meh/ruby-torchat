@@ -23,6 +23,8 @@ class Torchat; class Session
 
 class Buddies < Hash
 	def has_key? (name)
+		name = name.id if name.is_a? Buddy
+
 		!!self[name]
 	end
 

@@ -148,6 +148,8 @@ class Session
 	end
 
 	def add_buddy (id)
+		return if buddies.has_key? id
+
 		buddy = if id.is_a? Buddy
 			id
 		else
@@ -161,12 +163,14 @@ class Session
 	end
 
 	def remove_buddy (id)
+		return unless buddies.has_key? id
+
 		buddy = if id.is_a? Buddy
 			buddies.delete(buddies.key(id))
 		else
 			buddies.delete(id)
 		end
-		
+
 		buddy.send_packet :remove_me
 		buddy.disconnect
 
