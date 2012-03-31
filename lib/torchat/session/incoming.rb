@@ -35,7 +35,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
 		if packet.type == :ping
-			if !packet.valid? || @last_ping_address && packet.address != @last_ping_address
+			if !packet.valid? || packet.address == @session.address || @last_ping_address && packet.address != @last_ping_address
 				close_connection_after_writing
 				
 				return
@@ -48,13 +48,19 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			end
 
 			if @owner
-				@owner.send_packet :pong, packet.cookie
+				if @outgoing_was_here
+					@owner.send_packet :pong, packet.cookie
+				else
+					@owner.send_packet! :pong, packet.cookie
+				end
 			else
 				if buddy = @session.buddies[packet.address] && buddy.online?
 					close_connection_after_writing
 					
 					return
 				end
+
+				@outgoing_was_here = true
 
 				Buddy.new(@session, packet.address, self).tap {|buddy|
 					buddy.connect
