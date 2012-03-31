@@ -28,14 +28,18 @@ require 'torchat/protocol'
 
 class Torchat
 	def self.profile (name = nil)
-		FileUtils.mkpath(directory = "~/.torchat#{"_#{name}" if name}")
+		FileUtils.mkpath(directory = File.expand_path("~/.torchat#{"_#{name}" if name}"))
 
 		new("#{directory}/torchat.ini").tap {|t|
+			t.name = name
+			t.path = directory
+
 			t.buddy_list_at "#{directory}/buddy-list.txt"
 		}
 	end
 
-	attr_reader :config, :profile, :session
+	attr_reader   :config, :profile, :session
+	attr_accessor :name, :path
 
 	def initialize (path)
 		@config = if path.end_with?('ini')
@@ -115,5 +119,26 @@ class Torchat
 
 	def send_message_to (name, message)
 		@session.buddies[name].send_message(message)
+	end
+
+	def torrc
+		<<-EOF.gsub /^\t+/, ''
+			SocksPort #{config['connection']['outgoing']['port']}
+
+			HiddenServiceDir hidden_service
+			HiddenServicePort 11009 #{
+				config['connection']['incoming']['host']
+			}:#{
+				config['connection']['incoming']['port']
+			}
+
+			DataDirectory tor_data
+
+			AvoidDiskWrites 1
+			LongLivedPorts 11009
+			FetchDirInfoEarly 1
+			CircuitBuildTimeout 30
+			NumEntryGuards 6
+		EOF
 	end
 end

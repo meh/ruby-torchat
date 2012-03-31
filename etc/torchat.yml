@@ -1,9 +1,6 @@
 ---
-id:          7acbk6jpofsanyfp
 name:        Anonymous
 description: This is a description.
-
-buddies: [7acbk6jpofsanyfp]
 
 connection:
   outgoing:

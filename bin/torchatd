@@ -16,6 +16,14 @@ OptionParser.new do |o|
 		options[:config] = path
 	end
 
+	o.on '-g', '--generate [PATH]', 'the path to save the generated torrc' do |path|
+		options[:generate] = path || '-'
+	end
+
+	o.on '-t', '--tor', 'enable automatic generation and run of Tor' do
+		options[:tor] = true
+	end
+
 	o.on '-l', '--listen HOST:PORT', 'the host and port to listen on' do |value|
 		host, port = value.split(':')
 
@@ -241,13 +249,53 @@ end
 
 EM.run {
 	Torchatd.new(options[:password]) {|d|
-		(d.profile = (options[:config] ? Torchat.new(options[:config]) : Torchat.profile(options[:profile]))).start {|s|
+		d.profile = options[:config] ? Torchat.new(options[:config]) : Torchat.profile(options[:profile])
+
+		if options[:generate]
+			if options[:generate] == '-'
+				print d.profile.torrc
+			else
+				File.open(options[:generate], 'w') { |f| f.print d.profile.torrc }
+			end
+
+			exit
+		end
+
+		if options[:tor]
+			File.expand_path("#{d.profile.path || '~/.torchat'}/Tor").tap {|path|
+				FileUtils.mkpath path
+
+				Dir.chdir path do
+					unless File.exists?('torrc.txt')
+						File.open('torrc.txt', 'w') { |f| f.print d.profile.torrc }
+					end
+
+					EM.system 'tor -f torrc.txt', proc { }, proc {|data|
+						Dir.chdir path do
+							File.open('tor.log', 'w') { |f| f.print data }
+						end
+					}
+
+					exit 'could not load the onion id' if 20.times {
+						if File.exists? 'hidden_service/hostname'
+							d.profile.config['id'] = File.read('hidden_service/hostname')
+
+							break
+						end
+
+						sleep 1
+					}
+				end
+			}
+		end
+
+		d.profile.start {|s|
 			s.on :incoming do |incoming|
-				Torchat.debug "incoming connection"
+				Torchat.debug 'incoming connection'
 			end
 
 			s.on :outgoing do |outgoing|
-				Torchat.debug "outgoing connection"
+				Torchat.debug 'outgoing connection'
 			end
 
 			s.on :connection do |buddy|
