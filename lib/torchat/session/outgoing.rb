@@ -33,6 +33,8 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 		set_comm_inactivity_timeout new
 
+		@session.fire :connecting_to, @owner.address, @owner.port
+
 		socksify @owner.address, @owner.port, -> {
 			set_comm_inactivity_timeout old
 
@@ -78,7 +80,11 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 			Torchat.debug "errno #{EM.report_connection_error_status(@signature)}", level: 2
 		end
 
-		@owner.disconnect
+		if @owner.connecting?
+			@owner.failed!
+		else
+			@owner.disconnect
+		end
 	end
 end
 

@@ -45,7 +45,7 @@ class Buddy
 
 	attr_reader   :session, :id, :address, :avatar, :client
 	attr_writer   :status
-	attr_accessor :name, :description, :alias
+	attr_accessor :name, :description, :alias, :last_action_at
 
 	def port; 11009; end
 
@@ -117,6 +117,12 @@ class Buddy
 	def ready?; @ready;        end
 	def ready!; @ready = true; end
 
+	def failed!
+		@connecting = false
+
+		session.fire :failed_connection, self
+	end
+
 	def connecting?; @connecting; end
 
 	def connect
@@ -125,11 +131,9 @@ class Buddy
 		@connecting = true
 
 		EM.connect session.tor.host, session.tor.port, Outgoing do |outgoing|
-			own! outgoing
-
 			outgoing.instance_variable_set :@session, session
 
-			session.fire :outgoing, outgoing
+			own! outgoing
 		end
 	end
 

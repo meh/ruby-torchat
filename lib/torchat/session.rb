@@ -104,7 +104,7 @@ class Session
 			}
 		end
 
-		set_interval 30 do
+		set_interval 10 do
 			buddies.each_value {|buddy|
 				next unless buddy.offline? && !buddy.connecting?
 
@@ -224,8 +224,6 @@ class Session
 
 		@signature = EM.start_server host, port, Incoming do |incoming|
 			incoming.instance_variable_set :@session, self
-
-			fire :incoming, incoming
 		end
 	end
 

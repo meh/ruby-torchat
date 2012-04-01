@@ -34,6 +34,8 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 		Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
+		@owner.last_action = packet if @owner
+
 		if packet.type == :ping
 			if !packet.valid? || packet.address == @session.address || @last_ping_address && packet.address != @last_ping_address
 				close_connection_after_writing

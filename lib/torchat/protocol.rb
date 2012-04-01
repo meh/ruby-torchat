@@ -64,7 +64,11 @@ class Packet
 		unpack(data).tap { |p| p.from = from }
 	end
 
-	attr_accessor :from
+	attr_accessor :from, :at
+
+	def initialize
+		@at = Time.new
+	end
 
 	def type
 		self.class.type
@@ -96,6 +100,8 @@ class Packet
 		end
 
 		def initialize (value)
+			super()
+
 			@internal = value
 		end
 

@@ -262,6 +262,8 @@ EM.run {
 			exit
 		end
 
+		puts 'torchatd starting, sup'
+
 		if options[:tor]
 			File.expand_path("#{d.profile.path || '~/.torchat'}/Tor").tap {|path|
 				FileUtils.mkpath path
@@ -299,12 +301,12 @@ EM.run {
 		}
 
 		d.profile.start {|s|
-			s.on :incoming do |incoming|
-				Torchat.debug 'incoming connection'
+			s.when :connecting_to do |address, port|
+				Torchat.debug "connecting to #{address}:#{port}"
 			end
 
-			s.on :outgoing do |outgoing|
-				Torchat.debug 'outgoing connection'
+			s.on :failed_connection do |buddy|
+				Torchat.debug "#{buddy.id} failed to connect"
 			end
 
 			s.on :connection do |buddy|
@@ -336,6 +338,4 @@ EM.run {
 			}
 		}
 	}.start(options[:host], options[:port], options[:ssl])
-
-	puts 'torchatd started'
 }
