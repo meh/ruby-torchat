@@ -29,7 +29,15 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def connection_completed
-		socksify @owner.address, @owner.port, -> { @owner.connected }, -> { @owner.disconnected }
+		old, new = comm_inactivity_timeout, @session.connection_timeout
+
+		set_comm_inactivity_timeout new
+
+		socksify @owner.address, @owner.port, -> {
+			set_comm_inactivity_timeout old
+
+			@owner.connected
+		}, -> { @owner.disconnected }
 	end
 
 	def verification_completed

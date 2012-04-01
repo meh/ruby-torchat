@@ -23,7 +23,7 @@ class Torchat
 
 		return if ENV['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
 
-		output = "[#{Time.new}] "
+		output = options[:prefix] ? options[:prefix] : "[#{Time.new}] "
 
 		if argument.is_a?(Exception)
 			output << "From: #{caller[0, options[:deep] || 1].join("\n")}\n"

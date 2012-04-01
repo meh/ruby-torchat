@@ -42,7 +42,7 @@ class Session
 		@buddies   = Buddies.new
 		@timers    = []
 
-		@connection_timeout = 120
+		@connection_timeout = 60
 
 		on :verification do |buddy|
 			add_buddy buddy
@@ -162,7 +162,7 @@ class Session
 		}
 	end
 
-	def add_buddy (id)
+	def add_buddy (id, ali = nil)
 		return if self.id == id || buddies.has_key?(id)
 
 		buddy = if id.is_a? Buddy
@@ -171,9 +171,9 @@ class Session
 			Buddy.new(self, id)
 		end
 
-		buddies << buddy
+		buddy.alias = ali if ali
 
-		fire :added, buddy
+		buddies << buddy and fire :added, buddy
 
 		buddy.connect
 

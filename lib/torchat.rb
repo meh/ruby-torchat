@@ -83,16 +83,16 @@ class Torchat
 		@session.start
 
 		if @config['buddies']
-			@config['buddies'].each {|id|
-				@session.add_buddy id
+			@config['buddies'].each {|id, ali|
+				@session.add_buddy id, ali
 			}
 		end
 
 		if @buddy_list
 			File.read(@buddy_list).lines.each {|line|
-				whole, id, name = line.match(/^(.*?) (.*?)$/).to_a
+				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
 
-				@session.add_buddy id
+				@session.add_buddy id, ali
 			}
 		end
 	end
@@ -100,8 +100,8 @@ class Torchat
 	def stop
 		if @buddy_list
 			File.open(@buddy_list, 'w') {|f|
-				@session.buddies.each {|buddy|
-					f.puts "#{buddy.id} #{buddy.name}"
+				@session.buddies.each {|id, buddy|
+					f.puts "#{id} #{buddy.alias || buddy.name}"
 				}
 			}
 		end

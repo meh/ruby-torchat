@@ -40,25 +40,22 @@ OptionParser.new do |o|
 	end
 end.parse!
 
-%w[INT KILL].each {|sig|
-	trap sig do
-		puts 'torchatd stopping, bye'
-
-		EM.stop_event_loop
-	end
-}
-
 class Torchatd
+	class Tor < EM::Connection
+		def receive_data (data)
+			return unless ENV['DEBUG'] && ENV['DEBUG'].to_i >= 5
+
+			print data.gsub(/^/, 'tor] ')
+		end
+
+		alias stop close_connection
+	end
+
 	class Connection < EventMachine::Protocols::LineAndTextProtocol
 		attr_accessor :daemon, :host, :port, :ssl
 
-		def authorized?; @authorized; end
-
-		def authorize!
-			@authorized = true
-
-			send_response 'AUTHORIZED'
-		end
+		def authorized?; @authorized;        end
+		def authorize!;  @authorized = true; end
 
 		def receive_line (line)
 			return if line.lstrip.empty?
@@ -76,7 +73,7 @@ class Torchatd
 	end
 
 	attr_reader   :connections, :password
-	attr_accessor :profile
+	attr_accessor :profile, :tor
 
 	def initialize (password = nil)
 		@password = password
@@ -108,7 +105,8 @@ class Torchatd
 	def stop
 		EM.stop_server @signature
 
-		@started = false
+		profile.stop
+		tor.stop if tor
 	end
 
 	def process (connection, line)
@@ -125,7 +123,10 @@ class Torchatd
 			return
 
 		when :pass
-			connection.authorize! if @password == rest
+			if !@password || @password == rest
+				connection.authorize!
+				connection.send_response 'AUTHORIZED'
+			end
 
 			return
 		end
@@ -270,13 +271,9 @@ EM.run {
 						File.open('torrc.txt', 'w') { |f| f.print d.profile.torrc }
 					end
 
-					EM.system 'tor -f torrc.txt', proc { }, proc {|data, status|
-						Dir.chdir path do
-							File.open('tor.log', 'w') { |f| f.print data }
-						end
-
-						abort 'the tor instance exited with errors' unless status.success?
-					}
+					EM.popen 'tor -f torrc.txt', Torchatd::Tor do |t|
+						d.tor = t
+					end
 
 					abort 'could not load the onion id' if 20.times {
 						if File.exists? 'hidden_service/hostname'
@@ -290,6 +287,16 @@ EM.run {
 				end
 			}
 		end
+
+		%w[INT KILL].each {|sig|
+			trap sig do
+				puts 'torchatd stopping, bye'
+
+				d.stop
+
+				EM.stop_event_loop
+			end
+		}
 
 		d.profile.start {|s|
 			s.on :incoming do |incoming|

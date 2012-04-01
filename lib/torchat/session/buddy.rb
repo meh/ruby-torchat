@@ -45,7 +45,7 @@ class Buddy
 
 	attr_reader   :session, :id, :address, :avatar, :client
 	attr_writer   :status
-	attr_accessor :name, :description
+	attr_accessor :name, :description, :alias
 
 	def port; 11009; end
 
@@ -128,8 +128,6 @@ class Buddy
 			own! outgoing
 
 			outgoing.instance_variable_set :@session, session
-
-			outgoing.pending_connect_timeout = session.connection_timeout
 
 			session.fire :outgoing, outgoing
 		end
