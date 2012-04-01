@@ -88,7 +88,7 @@ class Torchat
 			}
 		end
 
-		if @buddy_list
+		if @buddy_list && File.readable?(@buddy_list)
 			File.read(@buddy_list).lines.each {|line|
 				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
 
