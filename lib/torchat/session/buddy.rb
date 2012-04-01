@@ -45,7 +45,7 @@ class Buddy
 
 	attr_reader   :session, :id, :address, :avatar, :client
 	attr_writer   :status
-	attr_accessor :name, :description, :alias, :last_action_at
+	attr_accessor :name, :description, :alias, :last_action
 
 	def port; 11009; end
 
@@ -80,6 +80,14 @@ class Buddy
 
 	alias when on
 
+	def has_incoming?
+		!!@incoming
+	end
+
+	def has_outgoing?
+		!!@outgoing
+	end
+
 	def own! (what)
 		if what.is_a? Incoming
 			@incoming = what
@@ -87,13 +95,13 @@ class Buddy
 			@outgoing = what
 		end
 
-		@incoming.owner = self if @incoming
-		@outgoing.owner = self if @outgoing
+		@incoming.owner = self if has_incoming?
+		@outgoing.owner = self if has_outgoing?
 	end
 
-	def pinged?; @pinged;         end
-	def ping!;   @pinged = true;  end
-	def pong!;   @pinged = false; end
+	def pinged?;  @pinged;         end
+	def ping!(c); @pinged = c;  end
+	def pong!;    @pinged = false; end
 
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless @outgoing
@@ -145,19 +153,19 @@ class Buddy
 		@connecting = false
 		@connected  = true
 
-		send_packet! :ping, session.address
-
-		ping!
+		ping! send_packet!(:ping, session.address).cookie
 
 		session.fire :connection, self
 	end
 
 	def verified?; @verified; end
 
-	def verified
+	def verified (incoming)
 		return if verified?
 
 		@verified = true
+
+		own! incoming
 
 		@outgoing.verification_completed
 

@@ -32,54 +32,62 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			return
 		end
 
-		Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
-
 		@owner.last_action = packet if @owner
 
 		if packet.type == :ping
-			if !packet.valid? || packet.address == @session.address || @last_ping_address && packet.address != @last_ping_address
+			Torchat.debug "ping incoming from claimed #{packet.id}", level: 2
+
+			if !packet.valid? || packet.address == @session.address || @last_ping && packet.address != @last_ping.address
 				close_connection_after_writing
-				
+
+				Torchat.debug 'invalid packet or DoS attempt'
+
 				return
 			end
 
-			@last_ping_address = packet.address
+			@last_ping = packet
 
-			if buddy = @session.buddies[packet.address]
-				buddy.own! self
+			if (buddy = @session.buddies[packet.address]) && buddy.has_incoming?
+				close_connection_after_writing
+
+				Torchat.debug "#{buddy.id} already has an incoming connection"
+
+				return
 			end
 
 			if @owner
-				if @outgoing_was_here
-					@owner.send_packet :pong, packet.cookie
-				else
-					@owner.send_packet! :pong, packet.cookie
-				end
+				@owner.send_packet :pong, packet.cookie
 			else
-				if buddy = @session.buddies[packet.address] && buddy.online?
-					close_connection_after_writing
-					
-					return
-				end
-
-				@outgoing_was_here = true
-
-				Buddy.new(@session, packet.address, self).tap {|buddy|
+				(buddy || @temp_buddy = Buddy.new(@session, packet.address, self)).tap {|buddy|
 					buddy.connect
 					buddy.send_packet :pong, packet.cookie
 				}
 			end
 		elsif packet.type == :pong
-			return unless @owner && @owner.pinged?
+			Torchat.debug "pong came with #{packet.cookie}", level: 2
 
-			unless @owner.verified?
-				@owner.verified
+			return unless @last_ping && buddy = @session.buddies[@last_ping.address] || @temp_buddy
+
+			if packet.cookie != buddy.pinged?
+				close_connection_after_writing
+
+				Torchat.debug "#{packet.from.id} pong with wrong cookie"
+
+				return
 			end
 
-			@owner.pong!
+			unless buddy.verified?
+				buddy.verified self
+			end
+
+			buddy.pong!
 		else
+			Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
+
 			@owner.session.received packet if packet && @owner && @owner.connected?
 		end
+	rescue => e
+		Torchat.debug e
 	end
 
 	def unbind

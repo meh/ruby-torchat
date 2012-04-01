@@ -49,6 +49,10 @@ class Torchatd
 		end
 
 		alias stop close_connection
+
+		def unbind
+			abort 'tor exited with errors' unless get_status.success?
+		end
 	end
 
 	class Connection < EventMachine::Protocols::LineAndTextProtocol
@@ -288,6 +292,14 @@ EM.run {
 					}
 				end
 			}
+		end
+
+		unless d.profile.config['id']
+			if d.profile.path
+				if File.readable?("#{d.profile.path}/Tor/hidden_service/hostname")
+					d.profile.config['id'] = File.read("#{d.profile.path}/Tor/hidden_service/hostname")
+				end
+			end or abort 'could not deduce the onion id'
 		end
 
 		%w[INT KILL].each {|sig|

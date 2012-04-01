@@ -56,23 +56,25 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def send_packet (*args)
+		packet = Protocol::Packet.create(*args)
+
 		if @delayed
-			@delayed << args
+			@delayed << packet
 		else
-			send_packet! *args
+			send_packet! packet
 		end
+
+		packet
 	end
 
 	def send_packet! (*args)
-		packet = if args.first.is_a? Symbol
-			Protocol::Packet[args.shift].new(*args)
-		else
-			args.first
-		end
+		packet = Protocol::Packet.create(*args)
 
 		Torchat.debug ">> #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
 		send_data packet.pack
+
+		packet
 	end
 
 	def unbind

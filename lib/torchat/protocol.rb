@@ -64,6 +64,14 @@ class Packet
 		unpack(data).tap { |p| p.from = from }
 	end
 
+	def self.create (*args)
+		if args.first.is_a? Symbol
+			Protocol::Packet[args.shift].new(*args)
+		else
+			args.first
+		end
+	end
+
 	attr_accessor :from, :at
 
 	def initialize
