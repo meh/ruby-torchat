@@ -45,20 +45,6 @@ OptionParser.new do |o|
 end.parse!
 
 class Torchatd
-	class Tor < EM::Connection
-		def receive_data (data)
-			return unless ENV['DEBUG'] && ENV['DEBUG'].to_i >= 5
-
-			print data.gsub(/^/, 'tor] ')
-		end
-
-		alias stop close_connection
-
-		def unbind
-			abort 'tor exited with errors' unless get_status.success?
-		end
-	end
-
 	class Connection < EventMachine::Protocols::LineAndTextProtocol
 		attr_accessor :daemon, :host, :port, :ssl
 
@@ -270,9 +256,9 @@ EM.run {
 
 		if options[:generate]
 			if options[:generate] == '-'
-				print d.profile.torrc
+				print d.profile.tor.rc
 			else
-				File.open(options[:generate], 'w') { |f| f.print d.profile.torrc }
+				File.open(options[:generate], 'w') { |f| f.print d.profile.tor.rc }
 			end
 
 			exit
@@ -281,28 +267,20 @@ EM.run {
 		puts 'torchatd starting...'
 
 		if options[:tor]
-			File.expand_path("#{d.profile.path || '~/.torchat'}/Tor").tap {|path|
-				FileUtils.mkpath path
+			d.profile.tor.file = 'torrc.txt'
 
-				Dir.chdir path do
-					unless File.exists?('torrc.txt')
-						File.open('torrc.txt', 'w') { |f| f.print d.profile.torrc }
+			d.profile.tor.start "#{d.profile.path || '~/.torchat'}/Tor", -> {
+				abort 'could not load the onion id' if 20.times {
+					if File.exists? 'hidden_service/hostname'
+						d.profile.config['id'] = File.read('hidden_service/hostname')[/^(.*?)\.onion/, 1]
+
+						break
 					end
 
-					EM.popen 'tor -f torrc.txt', Torchatd::Tor do |t|
-						d.tor = t
-					end
-
-					abort 'could not load the onion id' if 20.times {
-						if File.exists? 'hidden_service/hostname'
-							d.profile.config['id'] = File.read('hidden_service/hostname')[/^(.*?)\.onion/, 1]
-
-							break
-						end
-
-						sleep 1
-					}
-				end
+					sleep 1
+				}
+			}, -> {
+				abort 'tor exited with errors'
 			}
 		end
 

@@ -25,6 +25,7 @@ require 'torchat/version'
 require 'torchat/utils'
 require 'torchat/session'
 require 'torchat/protocol'
+require 'torchat/tor'
 
 class Torchat
 	def self.profile (name = nil)
@@ -38,7 +39,7 @@ class Torchat
 		}
 	end
 
-	attr_reader   :config, :profile, :session
+	attr_reader   :config, :session, :tor
 	attr_accessor :name, :path
 
 	def initialize (path)
@@ -65,6 +66,8 @@ class Torchat
 		else
 			YAML.parse_file(path).transform
 		end
+
+		@tor = Tor.new(@config)
 	end
 
 	def method_missing (id, *args, &block)
@@ -107,6 +110,7 @@ class Torchat
 		end
 
 		@session.stop
+		@tor.stop
 	end
 
 	def buddy_list_at (path)
@@ -121,24 +125,4 @@ class Torchat
 		@session.buddies[name].send_message(message)
 	end
 
-	def torrc
-		<<-EOF.gsub /^\t+/, ''
-			SocksPort #{config['connection']['outgoing']['port']}
-
-			HiddenServiceDir hidden_service
-			HiddenServicePort 11009 #{
-				config['connection']['incoming']['host']
-			}:#{
-				config['connection']['incoming']['port']
-			}
-
-			DataDirectory tor_data
-
-			AvoidDiskWrites 1
-			LongLivedPorts 11009
-			FetchDirInfoEarly 1
-			CircuitBuildTimeout 30
-			NumEntryGuards 6
-		EOF
-	end
 end
