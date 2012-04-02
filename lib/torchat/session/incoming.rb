@@ -26,15 +26,13 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		return if @session.offline?
 
 		packet = begin
-			Protocol::Packet.from(@owner, line.chomp)
+			Protocol::Packet.from(@owner, line.chomp) or return
 		rescue => e
 			Torchat.debug line.inspect
 			Torchat.debug e
 
 			return
 		end
-
-		@owner.last_action = packet if @owner
 
 		if packet.type == :ping
 			Torchat.debug "ping incoming from claimed #{packet.id}", level: 2
@@ -61,6 +59,8 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 				@owner.send_packet :pong, packet.cookie
 			else
 				if buddy
+					buddy.last_received = packet
+
 					buddy.connect
 
 					if buddy.connected?
@@ -70,6 +70,9 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 					end
 				else
 					@temp_buddy = Buddy.new(@session, packet.address, self)
+
+					@temp_buddy.last_received = packet
+
 					@temp_buddy.connect
 					@temp_buddy.send_packet :pong, packet.cookie
 				end
@@ -77,7 +80,11 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		elsif packet.type == :pong
 			Torchat.debug "pong came with #{packet.cookie}", level: 2
 
-			return unless @last_ping && buddy = @session.buddies[@last_ping.address] || @temp_buddy
+			return unless buddy = @session.buddies[@last_ping.address] || @temp_buddy
+
+			buddy.last_received = packet
+
+			return unless @last_ping
 
 			if packet.cookie != buddy.pinged?
 				close_connection_after_writing
@@ -92,10 +99,12 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			end
 
 			buddy.pong!
-		else
+		elsif packet && @owner
 			Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
-			@owner.session.received packet if packet && @owner && @owner.connected?
+			@owner.last_received = packet
+
+			@owner.session.received packet if @owner.connected?
 		end
 	rescue => e
 		Torchat.debug e

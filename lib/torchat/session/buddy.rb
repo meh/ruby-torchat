@@ -45,7 +45,7 @@ class Buddy
 
 	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try
 	attr_writer   :status
-	attr_accessor :name, :description, :alias, :last_action
+	attr_accessor :name, :description, :alias, :last_received
 
 	def port; 11009; end
 
@@ -61,6 +61,8 @@ class Buddy
 		@client  = Client.new
 
 		@tries = 0
+
+		@last_received = Protocol::Packet.create :status, :available
 
 		own! incoming
 		own! outgoing
@@ -193,7 +195,7 @@ class Buddy
 	def disconnected
 		return if disconnected?
 
-		@verified = @ready = @connecting = @connected = false
+		@last_received = @verified = @ready = @connecting = @connected = false
 
 		disconnect
 

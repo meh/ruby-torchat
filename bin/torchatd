@@ -31,12 +31,16 @@ OptionParser.new do |o|
 		options[:port] = port.to_i if port
 	end
 
+	o.on '-s', '--ssl KEY:CERT', 'the private key and cert files' do |path|
+		options[:ssl] = { key: path.split(':').first, cert: path.split(':').last }
+	end
+
 	o.on '-P', '--password PASSWORD' do |password|
 		options[:password] = password
 	end
 
-	o.on '-s', '--ssl KEY:CERT', 'the private key and cert files' do |path|
-		options[:ssl] = { key: path.split(':').first, cert: path.split(':').last }
+	o.on '-o', '--online' do
+		options[:online] = true
 	end
 end.parse!
 
@@ -80,8 +84,8 @@ class Torchatd
 	attr_accessor :profile, :tor
 
 	def initialize (password = nil)
-		@password = password
-
+		@password    = password
+		@buddies     = []
 		@connections = []
 
 		yield self if block_given?
@@ -129,7 +133,7 @@ class Torchatd
 		when :pass
 			if !@password || @password == rest
 				connection.authorize!
-				connection.send_response 'AUTHORIZED'
+				connection.send_response "AUTHORIZED #{profile.session.id}"
 			end
 
 			return
@@ -199,7 +203,7 @@ class Torchatd
 	end
 
 	def received (packet)
-		return unless packet.from.ready?
+		return unless @buddies.include? packet.from
 
 		if packet.type == :message
 			send_everyone "#{packet.from.id} MESSAGE #{packet}"
@@ -209,9 +213,9 @@ class Torchatd
 			send_everyone "#{packet.from.id} CLIENT_NAME #{packet}"
 		elsif packet.type == :version
 			send_everyone "#{packet.from.id} CLIENT_VERSION #{packet}"
-		elsif packet.type == :profile_name && !packet.to_s.empty?
+		elsif packet.type == :profile_name && !packet.nil?
 			send_everyone "#{packet.from.id} NAME #{packet}"
-		elsif packet.type == :profile_text && !packet.to_s.empty?
+		elsif packet.type == :profile_text && !packet.nil?
 			send_everyone "#{packet.from.id} DESCRIPTION #{packet}"
 		elsif packet.type == :remove_me
 			send_everyone "#{packet.from.id} REMOVE"
@@ -221,6 +225,8 @@ class Torchatd
 	def connected?; @connected; end
 
 	def connected (buddy)
+		@buddies << buddy
+
 		send_everyone "#{buddy.id} CONNECTED"
 
 		send_everyone "#{buddy.id} NAME #{buddy.name}"               if buddy.name
@@ -236,10 +242,16 @@ class Torchatd
 	end
 
 	def disconnected (buddy)
+		return unless @buddies.include? buddy
+
 		send_everyone "#{buddy.id} DISCONNECTED"
+
+		@buddies.delete buddy
 	end
 
 	def removed (buddy)
+		return unless @buddies.include? buddy
+
 		send_everyone "#{buddy.id} REMOVE"
 	end
 
@@ -266,7 +278,7 @@ EM.run {
 			exit
 		end
 
-		puts 'torchatd starting, sup'
+		puts 'torchatd starting...'
 
 		if options[:tor]
 			File.expand_path("#{d.profile.path || '~/.torchat'}/Tor").tap {|path|
@@ -283,7 +295,7 @@ EM.run {
 
 					abort 'could not load the onion id' if 20.times {
 						if File.exists? 'hidden_service/hostname'
-							d.profile.config['id'] = File.read('hidden_service/hostname')
+							d.profile.config['id'] = File.read('hidden_service/hostname')[/^(.*?)\.onion/, 1]
 
 							break
 						end
@@ -297,14 +309,16 @@ EM.run {
 		unless d.profile.config['id']
 			if d.profile.path
 				if File.readable?("#{d.profile.path}/Tor/hidden_service/hostname")
-					d.profile.config['id'] = File.read("#{d.profile.path}/Tor/hidden_service/hostname")
+					d.profile.config['id'] = File.read("#{d.profile.path}/Tor/hidden_service/hostname")[/^(.*?)\.onion/, 1]
 				end
 			end or abort 'could not deduce the onion id'
 		end
 
+		puts "torchatd started for #{d.profile.config['id']}"
+
 		%w[INT KILL].each {|sig|
 			trap sig do
-				puts 'torchatd stopping, bye'
+				puts 'torchatd stopping...'
 
 				d.stop
 
@@ -340,7 +354,7 @@ EM.run {
 			s.on :disconnection do |buddy|
 				Torchat.debug "#{buddy.id} disconnected"
 
-				d.disconnected buddy if buddy.ready?
+				d.disconnected buddy
 			end
 
 			%w(message status client version profile_name profile_text add_me remove_me).each {|type|
@@ -348,6 +362,8 @@ EM.run {
 					d.received packet
 				end
 			}
+
+			s.online! if options[:online]
 		}
 	}.start(options[:host], options[:port], options[:ssl])
 }

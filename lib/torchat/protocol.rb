@@ -160,7 +160,9 @@ class Ping < Packet
 	attr_accessor :cookie
 
 	def initialize (address, cookie = nil)
-		@cookie  = cookie || rand.to_s
+		super()
+
+		@cookie = cookie || rand.to_s
 
 		self.address = address
 	end
@@ -218,7 +220,7 @@ class Status < Packet::SingleValue
 			raise ArgumentError, "#{name} is not a valid status"
 		end
 
-		@internal = name.to_sym.downcase
+		super(name.to_sym.downcase)
 	end
 
 	def available?
@@ -246,7 +248,7 @@ class ProfileName < Packet::SingleValue
 	can_be_nil!
 
 	def initialize (name)
-		@internal = name.force_encoding('UTF-8') if name
+		super(name.force_encoding('UTF-8')) if name
 	end
 
 	def to_s
@@ -260,7 +262,7 @@ class ProfileText < Packet::SingleValue
 	can_be_nil!
 
 	def initialize (text)
-		@internal = text.force_encoding('UTF-8') if text
+		super(text.force_encoding('UTF-8')) if text
 	end
 
 	def to_s
@@ -314,7 +316,7 @@ end
 
 class Message < Packet::SingleValue
 	def initialize (data)
-		@internal = data.force_encoding('UTF-8')
+		super(data.force_encoding('UTF-8'))
 	end
 
 	def to_s
@@ -334,6 +336,8 @@ class Filename < Packet
 	attr_accessor :id, :name, :file_size, :block_size
 
 	def initialize (name, file_size, block_size, id = nil)
+		super()
+
 		@id = id || rand.to_s
 
 		@name       = name
@@ -360,6 +364,8 @@ class Filedata < Packet
 	attr_accessor :id, :start_at, :data
 
 	def initialize (start, md5, data, id = nil)
+		super()
+
 		@id = id || rand.to_s
 
 		@start_at = start.to_i
@@ -386,6 +392,8 @@ class FiledataOk < Packet
 	attr_accessor :id, :start_at
 
 	def initialize (start, id = nil)
+		super()
+
 		@id = id
 
 		@start_at = start.to_i
@@ -406,6 +414,8 @@ class FiledataError < Packet
 	attr_accessor :id, :start_at
 
 	def initialize (start, id = nil)
+		super()
+
 		@id = id
 
 		@start_at = start.to_i
@@ -417,8 +427,8 @@ class FiledataError < Packet
 end
 
 class FileStopSending < Packet::SingleValue
-	def initialize (id)
-		@internal = id || rand.to_s
+	def initialize (id = nil)
+		super(id || rand.to_s)
 	end
 
 	def id
@@ -427,8 +437,8 @@ class FileStopSending < Packet::SingleValue
 end
 
 class FileStopReceiving < Packet::SingleValue
-	def initialize (id)
-		@internal = id || rand.to_s
+	def initialize (id = nil)
+		super(id || rand.to_s)
 	end
 
 	def id

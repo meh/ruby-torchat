@@ -102,7 +102,13 @@ class Session
 			next unless online?
 
 			buddies.each_value {|buddy|
-				buddy.send_packet :status, status if buddy.online?
+				next unless buddy.online?
+
+				if (Time.new.to_i - buddy.last_received.at.to_i) >= 360
+					buddy.disconnect
+				else
+					buddy.send_packet :status, status
+				end
 			}
 		end
 
