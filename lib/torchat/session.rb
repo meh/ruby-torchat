@@ -230,6 +230,9 @@ class Session
 			buddies.delete(id)
 		end
 
+		# yeah, sucks, but at least we're sure it's really removing us
+		buddy.send_packet :remove_me
+		buddy.send_packet :remove_me
 		buddy.send_packet :remove_me
 
 		fire :removed, buddy
