@@ -23,6 +23,8 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
 
 	def receive_line (line)
+		return if @session.offline?
+
 		packet = begin
 			Protocol::Packet.from(@owner, line.chomp)
 		rescue => e
@@ -58,10 +60,19 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			if @owner
 				@owner.send_packet :pong, packet.cookie
 			else
-				(buddy || @temp_buddy = Buddy.new(@session, packet.address, self)).tap {|buddy|
+				if buddy
 					buddy.connect
-					buddy.send_packet :pong, packet.cookie
-				}
+
+					if buddy.connected?
+						buddy.send_packet! :pong, packet.cookie
+					else
+						buddy.send_packet :pong, packet.cookie
+					end
+				else
+					@temp_buddy = Buddy.new(@session, packet.address, self)
+					@temp_buddy.connect
+					@temp_buddy.send_packet :pong, packet.cookie
+				end
 			end
 		elsif packet.type == :pong
 			Torchat.debug "pong came with #{packet.cookie}", level: 2

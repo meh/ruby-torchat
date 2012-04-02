@@ -101,8 +101,22 @@ class Packet
 	end
 
 	class SingleValue < Packet
+		def self.can_be_nil!
+			@can_be_nil = true
+		end
+
+		def self.can_be_nil?
+			@can_be_nil
+		end
+
 		def self.unpack (data)
-			raise ArgumentError, 'missing value for packet' if data.nil?
+			if data.nil? || data.empty?
+				if can_be_nil?
+					data = nil
+				else
+					raise ArgumentError, 'missing value for packet'
+				end
+			end
 
 			new(data)
 		end
@@ -111,6 +125,10 @@ class Packet
 			super()
 
 			@internal = value
+		end
+
+		def nil?
+			@internal.nil?
 		end
 
 		def pack
@@ -225,8 +243,10 @@ class Status < Packet::SingleValue
 end
 
 class ProfileName < Packet::SingleValue
+	can_be_nil!
+
 	def initialize (name)
-		@internal = name.force_encoding('UTF-8')
+		@internal = name.force_encoding('UTF-8') if name
 	end
 
 	def to_s
@@ -237,8 +257,10 @@ class ProfileName < Packet::SingleValue
 end
 
 class ProfileText < Packet::SingleValue
+	can_be_nil!
+
 	def initialize (text)
-		@internal = text.force_encoding('UTF-8')
+		@internal = text.force_encoding('UTF-8') if text
 	end
 
 	def to_s

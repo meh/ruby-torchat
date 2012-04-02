@@ -39,7 +39,11 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 			set_comm_inactivity_timeout old
 
 			@owner.connected
-		}, -> { @owner.disconnected }
+		}, -> exc {
+			Torchat.debug exc, level: 3
+
+			@owner.disconnected
+		}
 	end
 
 	def verification_completed

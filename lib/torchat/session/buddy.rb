@@ -43,7 +43,7 @@ class Buddy
 
 	Client = Struct.new(:name, :version)
 
-	attr_reader   :session, :id, :address, :avatar, :client
+	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try
 	attr_writer   :status
 	attr_accessor :name, :description, :alias, :last_action
 
@@ -60,10 +60,10 @@ class Buddy
 		@avatar  = Avatar.new
 		@client  = Client.new
 
+		@tries = 0
+
 		own! incoming
 		own! outgoing
-
-		connect unless @outgoing
 	end
 
 	def status
@@ -136,7 +136,9 @@ class Buddy
 	def connect
 		return if connecting? || connected?
 
-		@connecting = true
+		@connecting  = true
+		@tries      += 1
+		@last_try    = Time.new
 
 		EM.connect session.tor.host, session.tor.port, Outgoing do |outgoing|
 			outgoing.instance_variable_set :@session, session
@@ -152,6 +154,9 @@ class Buddy
 
 		@connecting = false
 		@connected  = true
+
+		@tries    = 0
+		@last_try = nil
 
 		ping! send_packet!(:ping, session.address).cookie
 

@@ -162,7 +162,7 @@ class Torchatd
 		when :client
 			if buddy = profile.buddies[rest]
 				if buddy.client.name
-					connection.send_response "#{rest} CLIENT_NAME #{buddy.client.name}" 
+					connection.send_response "#{rest} CLIENT_NAME #{buddy.client.name}"
 				end
 
 				if buddy.client.version
@@ -340,7 +340,7 @@ EM.run {
 			s.on :disconnection do |buddy|
 				Torchat.debug "#{buddy.id} disconnected"
 
-				d.disconnected buddy
+				d.disconnected buddy if buddy.ready?
 			end
 
 			%w(message status client version profile_name profile_text add_me remove_me).each {|type|

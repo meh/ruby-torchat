@@ -32,7 +32,7 @@ class Session
 	def initialize (config)
 		@config = config
 
-		@status = :available
+		@status = :offline
 
 		@id          = @config['id'][/^(.*?)(\.onion)?$/, 1]
 		@name        = config['name']
@@ -83,11 +83,11 @@ class Session
 		end
 
 		on :profile_name do |packet, buddy|
-			buddy.name = packet.to_str unless packet.to_str.empty?
+			buddy.name = packet.to_str
 		end
 
 		on :profile_text do |packet, buddy|
-			buddy.description = packet.to_str unless packet.to_str.empty?
+			buddy.description = packet.to_str
 		end
 
 		on :profile_avatar_alpha do |packet, buddy|
@@ -99,14 +99,20 @@ class Session
 		end
 
 		set_interval 120 do
+			next unless online?
+
 			buddies.each_value {|buddy|
 				buddy.send_packet :status, status if buddy.online?
 			}
 		end
 
 		set_interval 10 do
+			next unless online?
+
 			buddies.each_value {|buddy|
 				next unless buddy.offline? && !buddy.connecting?
+
+				next if (Time.new.to_i - buddy.last_try.to_i) < (buddy.tries * 10)
 
 				buddy.connect
 			}
@@ -150,7 +156,36 @@ class Session
 		}
 	end
 
+	def online?;  @status != :offline; end
+	def offline?; !online?;            end
+
+	def online!
+		return if online?
+
+		@status = :available
+
+		buddies.each_value {|buddy|
+			buddy.connect
+		}
+	end
+
+	def offline!
+		return if offline?
+
+		@status = :offline
+
+		buddies.each_value {|buddy|
+			buddy.disconnect
+		}
+	end
+
 	def status= (value)
+		if value.to_sym.downcase == :offline
+			offline!; return
+		end
+
+		online! if offline?
+
 		unless Protocol::Status.valid?(value)
 			raise ArgumentError, "#{value} is not a valid status"
 		end
@@ -175,7 +210,7 @@ class Session
 
 		buddies << buddy and fire :added, buddy
 
-		buddy.connect
+		buddy.connect if online?
 
 		buddy
 	end
@@ -224,6 +259,12 @@ class Session
 
 		@signature = EM.start_server host, port, Incoming do |incoming|
 			incoming.instance_variable_set :@session, self
+
+			if offline?
+				incoming.close_connection
+
+				next
+			end
 		end
 	end
 
