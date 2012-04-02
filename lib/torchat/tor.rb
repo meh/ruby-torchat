@@ -67,7 +67,7 @@ class Tor
 					t.instance_variable_set :@owner, self
 				end
 
-				block.call(path) if block
+				block.arity.zero? ? block.call : block.call(path) if block
 			end
 		}
 	end
