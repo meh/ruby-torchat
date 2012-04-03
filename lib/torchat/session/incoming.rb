@@ -47,7 +47,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@last_ping = packet
 
-			if (buddy = @session.buddies[packet.address]) && buddy.has_incoming?
+			if (buddy = @session.buddies[packet.address]) && buddy.has_incoming? && buddy.instance_variable_get(:@incoming) != self
 				close_connection_after_writing
 
 				Torchat.debug "#{buddy.id} already has an incoming connection"
