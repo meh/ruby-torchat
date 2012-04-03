@@ -42,7 +42,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 		}, -> exc {
 			Torchat.debug exc, level: 3
 
-			@owner.disconnected
+			@owner.disconnect
 		}
 	end
 

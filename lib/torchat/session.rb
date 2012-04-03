@@ -68,6 +68,8 @@ class Session
 
 		on :remove_me do |packet, buddy|
 			remove_buddy buddy
+
+			buddy.disconnect
 		end
 
 		on :client do |packet, buddy|
@@ -230,14 +232,14 @@ class Session
 			buddies.delete(id)
 		end
 
-		# yeah, sucks, but at least we're sure it's really removing us
 		buddy.send_packet :remove_me
-		buddy.send_packet :remove_me
-		buddy.send_packet :remove_me
+		buddy.removed!
 
 		fire :removed, buddy
 
-		buddy.disconnect
+		set_timeout 5 do
+			buddy.disconnect
+		end
 
 		buddy
 	end

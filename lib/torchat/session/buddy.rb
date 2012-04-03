@@ -62,8 +62,6 @@ class Buddy
 
 		@tries = 0
 
-		@last_received = Protocol::Packet.create :status, :available
-
 		own! incoming
 		own! outgoing
 	end
@@ -105,14 +103,17 @@ class Buddy
 	def ping!(c); @pinged = c;  end
 	def pong!;    @pinged = false; end
 
+	def removed?; @removed;        end
+	def removed!; @removed = true; end
+
 	def send_packet (*args)
-		raise 'you cannot send packets yet' unless @outgoing
+		raise 'you cannot send packets yet' unless has_outgoing?
 
 		@outgoing.send_packet *args
 	end
 
 	def send_packet! (*args)
-		raise 'you cannot send packets yet' unless @outgoing
+		raise 'you cannot send packets yet' unless has_outgoing?
 
 		@outgoing.send_packet! *args
 	end
@@ -153,6 +154,8 @@ class Buddy
 
 	def connected
 		return if connected?
+
+		@last_received = Protocol::Packet.create :status, :available
 
 		@connecting = false
 		@connected  = true
