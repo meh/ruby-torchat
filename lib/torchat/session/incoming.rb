@@ -23,7 +23,11 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
 
 	def receive_line (line)
-		return if @session.offline?
+		if @session.offline?
+			close_connection_after_writing
+
+			return
+		end
 
 		packet = begin
 			Protocol::Packet.from(@owner, line.chomp) or return
@@ -37,7 +41,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		if packet.type == :ping
 			Torchat.debug "ping incoming from claimed #{packet.id}", level: 2
 
-			if !packet.valid? || packet.address == @session.address || @last_ping && packet.address != @last_ping.address
+			if !packet.valid? || packet.id == @session.id || @last_ping && packet.id != @last_ping.id
 				close_connection_after_writing
 
 				Torchat.debug 'invalid packet or DoS attempt'
@@ -47,12 +51,22 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@last_ping = packet
 
-			if (buddy = @session.buddies[packet.address]) && buddy.has_incoming? && buddy.instance_variable_get(:@incoming) != self
-				close_connection_after_writing
+			if buddy = @session.buddies[packet.id]
+				if buddy.blocked?
+					close_connection_after_writing
 
-				Torchat.debug "#{buddy.id} already has an incoming connection"
+					Torchat.debug "#{buddy.id} is blocked"
 
-				return
+					return
+				end
+
+				if buddy.has_incoming? && buddy.instance_variable_get(:@incoming) != self
+					close_connection_after_writing
+
+					Torchat.debug "#{buddy.id} already has an incoming connection"
+
+					return
+				end
 			end
 
 			if @owner
@@ -69,7 +83,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 						buddy.send_packet :pong, packet.cookie
 					end
 				else
-					@temp_buddy = Buddy.new(@session, packet.address, self)
+					@temp_buddy = Buddy.new(@session, packet.id, self)
 
 					@temp_buddy.last_received = packet
 
@@ -80,7 +94,15 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		elsif packet.type == :pong
 			Torchat.debug "pong came with #{packet.cookie}", level: 2
 
-			return unless buddy = @session.buddies[@last_ping.address] || @temp_buddy
+			return unless buddy = @session.buddies[@last_ping.id] || @temp_buddy
+
+			if buddy.blocked?
+				close_connection_after_writing
+
+				Torchat.debug "#{buddy.id} is blocked."
+
+				return
+			end
 
 			buddy.last_received = packet
 
@@ -99,7 +121,15 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			end
 
 			buddy.pong!
-		elsif packet && @owner
+		else
+			unless @owner
+				close_connection_after_writing
+
+				Torchat.debug 'someone sent a packet before the handshake'
+
+				return
+			end
+
 			Torchat.debug "<< #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 
 			@owner.last_received = packet

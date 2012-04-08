@@ -106,6 +106,11 @@ class Buddy
 	def removed?; @removed;        end
 	def removed!; @removed = true; end
 
+	def blocked?; @blocked;         end
+	def allowed?; !blocked?;        end
+	def block!;   @blocked = true;  end
+	def allow!;   @blocked = false; end
+
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?
 
