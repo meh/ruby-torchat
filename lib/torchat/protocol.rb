@@ -330,24 +330,23 @@ class Filename < Packet
 	def self.unpack (data)
 		id, file_size, bock_size, file_name = data.split ' '
 
-		new(file_name, file_size, block_size, id)
+		new(id, file_name, file_size, block_size)
 	end
 
-	attr_accessor :id, :name, :file_size, :block_size
+	attr_accessor :id, :name, :size, :block_size
 
-	def initialize (name, file_size, block_size, id = nil)
+	def initialize (id, name, size, block_size)
 		super()
 
-		@id = id || rand.to_s
-
+		@id         = id
 		@name       = name
-		@file_size  = file_size.to_i
+		@size       = size.to_i
 		@block_size = block_size.to_i
 	end
 
-	def bytesize
-		@file_size * @block_size
-	end
+	alias length size
+
+	alias bytesize size
 
 	def pack
 		super("#{id} #{file_size} #{block_size}")
@@ -356,21 +355,20 @@ end
 
 class Filedata < Packet
 	def self.unpack (data)
-		id, start, md5, data = data.split ' '
+		id, offset, md5, data = data.split ' '
 
-		new(start, hash, data, id)
+		new(id, offset, data, md5)
 	end
 
-	attr_accessor :id, :start_at, :data
+	attr_accessor :id, :offset, :data
 
-	def initialize (start, md5, data, id = nil)
+	def initialize (id, offset, data, md5 = nil)
 		super()
 
-		@id = id || rand.to_s
-
-		@start_at = start.to_i
-		@md5      = md5
-		@data     = data
+		@id     = id
+		@offset = offset.to_i
+		@data   = data.force_encoding('BINARY')
+		@md5    = md5 || Digest::MD5.hexdigest(data)
 	end
 
 	def valid?
@@ -378,57 +376,55 @@ class Filedata < Packet
 	end
 
 	def pack
-		super("#{id} #{start} #{hash} #{data}")
+		super("#{id} #{offset} #{hash} #{data}")
 	end
 end
 
 class FiledataOk < Packet
 	def self.unpack (data)
-		id, start = data.split ' '
+		id, offset = data.split ' '
 
-		new(start, id)
+		new(id, offset)
 	end
 
-	attr_accessor :id, :start_at
+	attr_accessor :id, :offset
 
-	def initialize (start, id = nil)
+	def initialize (id, offset)
 		super()
 
-		@id = id
-
-		@start_at = start.to_i
+		@id     = id
+		@offset = offset.to_i
 	end
 
 	def pack
-		super("#{id} #{start_at}")
+		super("#{id} #{offset}")
 	end
 end
 
 class FiledataError < Packet
 	def self.unpack (data)
-		id, start = data.split ' '
+		id, offset = data.split ' '
 
-		new(start, id)
+		new(offset, id)
 	end
 
-	attr_accessor :id, :start_at
+	attr_accessor :id, :offset
 
-	def initialize (start, id = nil)
+	def initialize (id, offset)
 		super()
 
-		@id = id
-
-		@start_at = start.to_i
+		@offset = offset.to_i
+		@id     = id || rand.to_s
 	end
 
 	def pack
-		super("#{id} #{start_at}")
+		super("#{id} #{offset}")
 	end
 end
 
 class FileStopSending < Packet::SingleValue
-	def initialize (id = nil)
-		super(id || rand.to_s)
+	def initialize (id)
+		super(id)
 	end
 
 	def id
@@ -437,8 +433,8 @@ class FileStopSending < Packet::SingleValue
 end
 
 class FileStopReceiving < Packet::SingleValue
-	def initialize (id = nil)
-		super(id || rand.to_s)
+	def initialize (id)
+		super(id)
 	end
 
 	def id

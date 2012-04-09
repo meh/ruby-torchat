@@ -25,7 +25,7 @@ require 'torchat/session/buddies'
 class Torchat
 
 class Session
-	attr_reader   :config, :buddies, :id, :name, :description, :status
+	attr_reader   :config, :buddies, :id, :name, :description, :status, :file_transfers
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -38,9 +38,10 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
-		@callbacks = Hash.new { |h, k| h[k] = [] }
-		@buddies   = Buddies.new
-		@timers    = []
+		@callbacks      = Hash.new { |h, k| h[k] = [] }
+		@buddies        = Buddies.new
+		@file_transfers = {}
+		@timers         = []
 
 		@connection_timeout = 60
 
@@ -100,6 +101,28 @@ class Session
 			buddy.avatar.rgb = packet.data
 		end
 
+		on :filename do |packet, buddy|
+			@file_transfers[packet.id] = FileTransfer.new(id, packet.name, packet.size).tap {|ft|
+				ft.from = buddy
+			}
+		end
+
+		on :filedata do |packet, buddy|
+			next unless file_transfer = @file_transfers[packet.id]
+
+			file_transfer.add_block packet.offset, packet.data, packet.md5
+
+			buddy.send_packet :filedata_ok, packet.id, packet.offset
+		end
+
+		on :filedata_ok do |packet, buddy|
+
+		end
+
+		on :filedata_error do |packet, buddy|
+
+		end
+
 		set_interval 120 do
 			next unless online?
 
@@ -118,9 +141,9 @@ class Session
 			next unless online?
 
 			buddies.each_value {|buddy|
-				next unless buddy.offline? && !buddy.connecting?
+				next unless buddy.offline? || buddy.blocked?
 
-				next if (Time.new.to_i - buddy.last_try.to_i) < (buddy.tries * 10)
+				next if (Time.new.to_i - buddy.last_try.to_i) < ((buddy.tries > 36 ? 36 : buddy.tries) * 10)
 
 				buddy.connect
 			}
@@ -244,6 +267,26 @@ class Session
 		buddy
 	end
 
+	def start_file_transfer (file, to)
+
+	end
+	
+	def interrupt_file_transfer (id)
+		unless file_transfer = @file_transfers[id]
+			raise ArgumentError, 'unexistent file transfer'
+		end
+
+		unless buddy = file_transfer.from || file_transfer.to
+			raise ArgumentError, 'the file transfer is unstoppable'
+		end
+
+		if file_transfer.from
+			buddy.send_packet :file_stop_sending, id
+		else
+			buddy.send_packet :file_stop_receiving, id
+		end
+	end
+
 	def on (what, &block)
 		@callbacks[what.to_sym.downcase] << block
 	end
@@ -270,12 +313,6 @@ class Session
 
 		@signature = EM.start_server host, port, Incoming do |incoming|
 			incoming.instance_variable_set :@session, self
-
-			if offline?
-				incoming.close_connection
-
-				next
-			end
 		end
 	end
 
