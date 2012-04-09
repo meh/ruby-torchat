@@ -141,7 +141,7 @@ class Session
 			next unless online?
 
 			buddies.each_value {|buddy|
-				next unless buddy.offline? || buddy.blocked?
+				next if buddy.online? || buddy.blocked?
 
 				next if (Time.new.to_i - buddy.last_try.to_i) < ((buddy.tries > 36 ? 36 : buddy.tries) * 10)
 
