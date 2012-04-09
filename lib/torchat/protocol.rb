@@ -17,13 +17,7 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'digest/md5'
-
 class Torchat; module Protocol
-
-def self.valid_address? (address)
-	!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}(\.onion)?$/i)
-end
 
 def self.encode (data)
 	data = data.dup
@@ -45,30 +39,172 @@ def self.decode (data)
 	data
 end
 
+@packets    = {}
+@extensions = []
+
+def self.[] (name)
+	@packets[name.to_sym.downcase]
+end
+
+def self.[]= (name, value)
+	if value.nil?
+		@packets.delete(name.to_sym.downcase)
+	else
+		@packets[name.to_sym.downcase] = value
+	end
+end
+
+def self.has_packet? (name)
+	@packets.has_key?(name.to_sym.downcase)
+end
+
+def self.packets
+	@packets.values
+end
+
+def self.extensions
+	@extensions.map {|name|
+		Struct.new(:name, :packets).new(name, packets.select { |p| p.extension == name })
+	}
+end
+
+def self.define_packet (name, &block)
+	raise ArgumentError, "#{name} already exists" if has_packet?(name)
+
+	self[name] = Packet.define(name, @extension, &block)
+end
+
+def self.define_packet! (name, &block)
+	self[name] = nil
+
+	define_packet(name, &block)
+end
+
+def self.define_extension (name)
+	@extensions.push(name).uniq!
+
+	@extension = name
+	result = yield
+	@extension = nil
+
+	result
+end
+
+def self.packet (*args)
+	if args.first.is_a? Packet
+		args.first
+	else
+		unless packet = self[args.shift]
+			raise ArgumentError, "#{name} packet unknown"
+		end
+
+		packet.new(*args)
+	end
+end
+
+def self.unpack (data, from = nil)
+	name, data = data.split(' ', 2)
+
+	unless packet = self[name]
+		raise ArgumentError, "#{name} packet unknown"
+	end
+
+	unless packet.respond_to? :unpack
+		raise ArgumentError, "#{name} packet has no unpacker"
+	end
+
+	packet      = packet.unpack(decode(data))
+	packet.from = from
+
+	packet
+end
+
 class Packet
-	def self.type
-		name[/(::)?([^:]+)$/, 2].gsub(/([A-Z])/) { '_' + $1.downcase }[1 .. -1].to_sym
+	def self.define (name, extension = nil, &block)
+		Class.new(self, &block).tap {|c|
+			c.instance_eval {
+				define_singleton_method :type do name end
+				define_method :type do name end
+
+				define_singleton_method :extension do extension end
+				define_method :extension do extension end
+
+				define_singleton_method :inspect do
+					"#<Torchat::Packet: #{type}#{", #{extension}" if extension}>"
+				end
+			}
+		}
 	end
 
-	def self.[] (name)
-		Protocol.const_get(name.to_s.gsub(/(\A|_)(\w)/) { $2.upcase })
+	def self.define_unpacker (&block)
+		define_singleton_method :unpack do |data|
+			new(*block.call(data))
+		end
 	end
 
-	def self.unpack (data)
-		name, data = data.split(' ', 2)
+	def self.define_unpacker_for (range, &block)
+		unless range.is_a? Range
+			range = range .. range
+		end
 
-		self[name].unpack(data ? Protocol.decode(data) : nil)
-	end
-
-	def self.from (from, data)
-		unpack(data).tap { |p| p.from = from }
-	end
-
-	def self.create (*args)
-		if args.first.is_a? Symbol
-			Protocol::Packet[args.shift].new(*args)
+		if block
+			define_unpacker &block
 		else
-			args.first
+			define_unpacker do |data|
+				if data.nil? || data.empty?
+					if range.min == 0 && range.max != 0
+						return new
+					else
+						raise ArgumentError, "wrong number of arguments (0 for #{range.min})"
+					end
+				end
+
+				args = data.split ' ', range.max
+
+				unless range === args.length
+					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.min ? range.min : range.max})"
+				end
+
+				args
+			end
+		end
+
+		if range == (0 .. 0)
+			define_method :pack do
+				super('')
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}>"
+			end
+		elsif range.max == 1
+			define_method :initialize do |value|
+				super()
+
+				@internal = value
+			end
+
+			define_method :pack do
+				super(@internal.to_s)
+			end
+
+			define_method :nil? do
+				@internal.nil?
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}: #{@internal.inspect}>"
+			end
+		else
+			define_method :initialize do |*args|
+				super()
+
+				@internal = args
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}: #{@internal.map(&:inspect).join(', ')}>"
+			end
 		end
 	end
 
@@ -78,372 +214,12 @@ class Packet
 		@at = Time.new
 	end
 
-	def type
-		self.class.type
-	end
-
 	def pack (data)
-		"#{type}#{" #{Protocol.encode(data)}" if data && !data.empty?}\n"
-	end
-
-	class NoValue < Packet
-		def self.unpack (data)
-			new
-		end
-
-		def pack
-			super('')
-		end
-
-		def inspect
-			"#<#{self.class.name}#{"(#{from.inspect})" if from}>"
-		end
-	end
-
-	class SingleValue < Packet
-		def self.can_be_nil!
-			@can_be_nil = true
-		end
-
-		def self.can_be_nil?
-			@can_be_nil
-		end
-
-		def self.unpack (data)
-			if data.nil? || data.empty?
-				if can_be_nil?
-					data = nil
-				else
-					raise ArgumentError, 'missing value for packet'
-				end
-			end
-
-			new(data)
-		end
-
-		def initialize (value)
-			super()
-
-			@internal = value
-		end
-
-		def nil?
-			@internal.nil?
-		end
-
-		def pack
-			super(@internal.to_s)
-		end
-
-		def inspect
-			"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{@internal.inspect}>"
-		end
+		"#{type}#{" #{Protocol.encode(data)}" if data}\n"
 	end
 end
 
-class NotImplemented < Packet::SingleValue
-	def command
-		@internal
-	end
-end
-
-class Ping < Packet
-	def self.unpack (data)
-		if data.nil? || (tmp = data.split(' ')).length != 2
-			raise ArgumentError, 'not enough values in the packet'
-		end
-
-		new(*tmp)
-	end
-
-	attr_reader   :id, :address
-	attr_accessor :cookie
-
-	def initialize (address, cookie = nil)
-		super()
-
-		@cookie = cookie || rand.to_s
-
-		self.address = address
-	end
-
-	def id= (value)
-		@id      = value[/^(.*?)(\.onion)?$/, 1]
-		@address = "#{@id}.onion"
-	end
-
-	alias address= id=
-
-	def valid?
-		Protocol.valid_address?(@address)
-	end
-
-	def pack
-		super("#{id} #{cookie}")
-	end
-
-	def inspect
-		"#<#{self.class.name}#{"(#{from.inspect})" if from}: #{id} #{cookie}>"
-	end
-end
-
-class Pong < Packet::SingleValue
-	def cookie
-		@internal
-	end
-end
-
-class Client < Packet::SingleValue
-	def name
-		@internal
-	end
-
-	alias to_s   name
-	alias to_str name
-end
-
-class Version < Packet::SingleValue
-	def to_s
-		@internal
-	end
-
-	alias to_str to_s
-end
-
-class Status < Packet::SingleValue
-	def self.valid? (name)
-		%w(available away xa).include?(name.to_s.downcase)
-	end
-
-	def initialize (name)
-		unless Status.valid?(name)
-			raise ArgumentError, "#{name} is not a valid status"
-		end
-
-		super(name.to_sym.downcase)
-	end
-
-	def available?
-		@internal == :available
-	end
-
-	def away?
-		@internal == :away
-	end
-
-	def extended_away?
-		@internal == :xa
-	end
-
-	def to_sym
-		@internal
-	end
-
-	def to_s
-		@internal.to_s
-	end
-end
-
-class ProfileName < Packet::SingleValue
-	can_be_nil!
-
-	def initialize (name)
-		super(name.force_encoding('UTF-8')) if name
-	end
-
-	def to_s
-		@internal
-	end
-
-	alias to_str to_s
-end
-
-class ProfileText < Packet::SingleValue
-	can_be_nil!
-
-	def initialize (text)
-		super(text.force_encoding('UTF-8')) if text
-	end
-
-	def to_s
-		@internal
-	end
-
-	alias to_str to_s
-end
-
-class ProfileAvatarAlpha < Packet::SingleValue
-	def self.unpack (data)
-		new(data && data.empty? || data.bytesize != 4096 ? nil : data)
-	end
-
-	def nil?
-		@internal.nil?
-	end
-
-	def data
-		@internal
-	end
-
-	def inspect
-		"#<#{self.class.name}>"
-	end
-end
-
-class ProfileAvatar < Packet::SingleValue
-	def self.unpack (data)
-		new(data && data.empty? || data.bytesize != 12288 ? nil : data)
-	end
-
-	def nil?
-		@internal.nil?
-	end
-
-	def data
-		@internal
-	end
-
-	def inspect
-		"#<#{self.class.name}>"
-	end
-end
-
-class AddMe < Packet::NoValue
-end
-
-class RemoveMe < Packet::NoValue
-end
-
-class Message < Packet::SingleValue
-	def initialize (data)
-		super(data.force_encoding('UTF-8'))
-	end
-
-	def to_s
-		@internal
-	end
-
-	alias to_str to_s
-end
-
-class Filename < Packet
-	def self.unpack (data)
-		id, file_size, bock_size, file_name = data.split ' '
-
-		new(file_name, file_size, block_size, id)
-	end
-
-	attr_accessor :id, :name, :file_size, :block_size
-
-	def initialize (name, file_size, block_size, id = nil)
-		super()
-
-		@id = id || rand.to_s
-
-		@name       = name
-		@file_size  = file_size.to_i
-		@block_size = block_size.to_i
-	end
-
-	def bytesize
-		@file_size * @block_size
-	end
-
-	def pack
-		super("#{id} #{file_size} #{block_size}")
-	end
-end
-
-class Filedata < Packet
-	def self.unpack (data)
-		id, start, md5, data = data.split ' '
-
-		new(start, hash, data, id)
-	end
-
-	attr_accessor :id, :start_at, :data
-
-	def initialize (start, md5, data, id = nil)
-		super()
-
-		@id = id || rand.to_s
-
-		@start_at = start.to_i
-		@md5      = md5
-		@data     = data
-	end
-
-	def valid?
-		Digest::MD5.hexdigest(data) == @md5
-	end
-
-	def pack
-		super("#{id} #{start} #{hash} #{data}")
-	end
-end
-
-class FiledataOk < Packet
-	def self.unpack (data)
-		id, start = data.split ' '
-
-		new(start, id)
-	end
-
-	attr_accessor :id, :start_at
-
-	def initialize (start, id = nil)
-		super()
-
-		@id = id
-
-		@start_at = start.to_i
-	end
-
-	def pack
-		super("#{id} #{start_at}")
-	end
-end
-
-class FiledataError < Packet
-	def self.unpack (data)
-		id, start = data.split ' '
-
-		new(start, id)
-	end
-
-	attr_accessor :id, :start_at
-
-	def initialize (start, id = nil)
-		super()
-
-		@id = id
-
-		@start_at = start.to_i
-	end
-
-	def pack
-		super("#{id} #{start_at}")
-	end
-end
-
-class FileStopSending < Packet::SingleValue
-	def initialize (id = nil)
-		super(id || rand.to_s)
-	end
-
-	def id
-		@internal
-	end
-end
-
-class FileStopReceiving < Packet::SingleValue
-	def initialize (id = nil)
-		super(id || rand.to_s)
-	end
-
-	def id
-		@internal
-	end
-end
+require 'torchat/protocol/standard'
+require 'torchat/protocol/groupchat'
 
 end; end

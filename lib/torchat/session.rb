@@ -194,7 +194,7 @@ class Session
 
 		online! if offline?
 
-		unless Protocol::Status.valid?(value)
+		unless Protocol[:status].valid?(value)
 			raise ArgumentError, "#{value} is not a valid status"
 		end
 

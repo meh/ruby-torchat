@@ -20,6 +20,14 @@
 class Torchat
 
 class Tor
+	def self.valid_address? (address)
+		!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}\.onion$/i)
+	end
+
+	def self.valid_id? (id)
+		!!id.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}$/i)
+	end
+
 	class Instance < EM::Connection
 		def receive_data (data)
 			return unless ENV['DEBUG'] && ENV['DEBUG'].to_i >= 5

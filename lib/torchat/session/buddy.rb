@@ -50,7 +50,7 @@ class Buddy
 	def port; 11009; end
 
 	def initialize (session, id, incoming = nil, outgoing = nil)
-		unless Protocol.valid_address?(id)
+		unless Tor.valid_id?(id)
 			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 
@@ -160,7 +160,7 @@ class Buddy
 	def connected
 		return if connected?
 
-		@last_received = Protocol::Packet.create :status, :available
+		@last_received = Protocol.packet :status, :available
 
 		@connecting = false
 		@connected  = true

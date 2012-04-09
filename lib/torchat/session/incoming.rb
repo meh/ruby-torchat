@@ -30,7 +30,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		end
 
 		packet = begin
-			Protocol::Packet.from(@owner, line.chomp) or return
+			Protocol.unpack(line.chomp, @owner) or return
 		rescue => e
 			Torchat.debug line.inspect
 			Torchat.debug e

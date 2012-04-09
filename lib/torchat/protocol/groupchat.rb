@@ -17,37 +17,11 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/session/buddy'
+class Torchat; module Protocol
 
-class Torchat; class Session
+define_extension :groupchat do
+	define_packet :groupchat_message do
 
-class Buddies < Hash
-	def has_key? (name)
-		name = name.id if name.is_a? Buddy
-
-		!!self[name]
-	end
-
-	def delete (name)
-		super(self[name].id) rescue nil
-	end
-
-	def [] (name)
-		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.name }
-	end
-
-	def []= (name, buddy)
-		unless Tor.valid_address?(name) || Tor.valid_id?(name)
-			name = find { |a, b| name === b.name }.id
-		end
-
-		name = name[/^(.*?)(\.onion)?$/, 1]
-
-		super(name, buddy)
-	end
-
-	def << (buddy)
-		self[buddy.id] = buddy
 	end
 end
 
