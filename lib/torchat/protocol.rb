@@ -113,7 +113,7 @@ def self.unpack (data, from = nil)
 		raise ArgumentError, "#{name} packet has no unpacker"
 	end
 
-	packet      = packet.unpack(decode(data))
+	packet      = packet.unpack(data ? decode(data) : nil)
 	packet.from = from
 
 	packet
@@ -152,14 +152,18 @@ class Packet
 		else
 			define_unpacker do |data|
 				if data.nil? || data.empty?
-					if range.min == 0 && range.max != 0
-						return new
+					if range.min == 0
+						next [nil]
 					else
 						raise ArgumentError, "wrong number of arguments (0 for #{range.min})"
 					end
 				end
 
 				args = data.split ' ', range.max
+
+				if range.max == -1
+					range.max = args.length
+				end
 
 				unless range === args.length
 					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.min ? range.min : range.max})"
@@ -193,7 +197,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}: #{@internal.inspect}>"
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}#{": #{@internal.inspect}" if @internal}>"
 			end
 		else
 			define_method :initialize do |*args|

@@ -22,7 +22,7 @@ require 'digest/md5'
 class Torchat; module Protocol
 
 define_packet :not_implemented do
-	define_unpacker_for 1
+	define_unpacker_for 0 .. 1
 
 	def command
 		@internal
@@ -92,12 +92,10 @@ define_packet :version do
 end
 
 define_packet :supports do
-	define_unpacker do |data|
-		data.split ' '
-	end
+	define_unpacker_for 0 .. -1
 
-	def initialize (value)
-		@internal = value.map(&:downcase).map(&:to_sym)
+	def initialize (*supports)
+		@internal = supports.flatten.compact.map(&:downcase).map(&:to_sym).uniq
 	end
 
 	def method_missing (id, *args, &block)
