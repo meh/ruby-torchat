@@ -152,21 +152,23 @@ class Packet
 		else
 			define_unpacker do |data|
 				if data.nil? || data.empty?
-					if range.min == 0
+					if range.end == 0
+						next
+					elsif range.begin == 0
 						next [nil]
 					else
-						raise ArgumentError, "wrong number of arguments (0 for #{range.min})"
+						raise ArgumentError, "wrong number of arguments (0 for #{range.begin})"
 					end
 				end
 
-				args = data.split ' ', range.max
+				args = data.split ' ', range.end
 
-				if range.max == -1
-					range.max = args.length
+				if range.end == -1
+					range = range.begin .. args.length
 				end
 
 				unless range === args.length
-					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.min ? range.min : range.max})"
+					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.begin ? range.begin : range.end})"
 				end
 
 				args
@@ -181,7 +183,7 @@ class Packet
 			define_method :inspect do
 				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}>"
 			end
-		elsif range.max == 1
+		elsif range.end == 1
 			define_method :initialize do |value|
 				super()
 
