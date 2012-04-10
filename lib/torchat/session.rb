@@ -49,6 +49,7 @@ class Session
 
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
+			buddy.send_packet :supports, Protocol.extensions.map(&:name)
 
 			buddy.send_packet :profile_name, name        if name
 			buddy.send_packet :profile_text, description if description
@@ -56,6 +57,10 @@ class Session
 			buddy.send_packet :add_me
 
 			buddy.send_packet :status, status
+		end
+
+		on :supports do |packet, buddy|
+			buddy.supports *packet.to_a
 		end
 
 		on :status do |packet, buddy|

@@ -91,6 +91,26 @@ define_packet :version do
 	alias to_str to_s
 end
 
+define_packet :supports do
+	define_unpacker do |data|
+		data.split ' '
+	end
+
+	def initialize (value)
+		@internal = value.map(&:downcase).map(&:to_sym)
+	end
+
+	def method_missing (id, *args, &block)
+		return @internal.__send__ id, *args, &block if @internal.respond_to? id
+
+		super
+	end
+
+	def pack
+		super(@internal.join(' '))
+	end
+end
+
 define_packet :status do
 	def self.valid? (name)
 		%w(available away xa).include?(name.to_s.downcase)

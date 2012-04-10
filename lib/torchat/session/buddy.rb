@@ -54,16 +54,25 @@ class Buddy
 			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 
-		@session = session
-		@id      = id[/^(.*?)(\.onion)?$/, 1]
-		@address = "#{@id}.onion"
-		@avatar  = Avatar.new
-		@client  = Client.new
+		@session  = session
+		@id       = id[/^(.*?)(\.onion)?$/, 1]
+		@address  = "#{@id}.onion"
+		@avatar   = Avatar.new
+		@client   = Client.new
+		@supports = []
 
 		@tries = 0
 
 		own! incoming
 		own! outgoing
+	end
+
+	def supports (*what)
+		@supports.concat(what).uniq!
+	end
+
+	def supports? (what)
+		@supports.include?(what.to_sym.downcase)
 	end
 
 	def status
