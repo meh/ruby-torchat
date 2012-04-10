@@ -42,6 +42,10 @@ OptionParser.new do |o|
 	o.on '-o', '--online' do
 		options[:online] = true
 	end
+
+	o.on '-d', '--debug [LEVEL=1]', 'enable debug mode' do |value|
+		ENV['DEBUG'] = value || ?1
+	end
 end.parse!
 
 class Torchatd
