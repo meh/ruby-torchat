@@ -36,6 +36,7 @@ class Torchat
 			t.path = directory
 
 			t.buddy_list_at "#{directory}/buddy-list.txt"
+			t.blocked_buddy_list_at "#{directory}/blocked-buddy-list.txt"
 		}
 	end
 
@@ -87,15 +88,23 @@ class Torchat
 
 		if @config['buddies']
 			@config['buddies'].each {|id, ali|
-				@session.add_buddy id, ali
+				@session.add_buddy(id).alias = ali
 			}
 		end
 
 		if @buddy_list && File.readable?(@buddy_list)
-			File.read(@buddy_list).lines.each {|line|
+			File.open(@buddy_list).lines.each {|line|
 				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
 
-				@session.add_buddy id, ali
+				@session.add_buddy(id, ali)
+			}
+		end
+
+		if @blocked_buddy_list && File.readable?(@blocked_buddy_list)
+			File.open(@blocked_buddy_list).lines.each {|line|
+				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
+
+				@session.add_temporary_buddy(id, ali).block!
 			}
 		end
 	end
@@ -104,6 +113,18 @@ class Torchat
 		if @buddy_list
 			File.open(@buddy_list, 'w') {|f|
 				@session.buddies.each {|id, buddy|
+					next if buddy.temporary?
+
+					f.puts "#{id} #{buddy.alias || buddy.name}"
+				}
+			}
+		end
+
+		if @blocked_buddy_list
+			File.open(@blocked_buddy_list, 'w') {|f|
+				@session.buddies.each {|id, buddy|
+					next unless buddy.blocked?
+
 					f.puts "#{id} #{buddy.alias || buddy.name}"
 				}
 			}
@@ -117,6 +138,10 @@ class Torchat
 		@buddy_list = File.expand_path(path)
 	end
 
+	def blocked_buddy_list_at (path)
+		@blocked_buddy_list = File.expand_path(path)
+	end
+
 	def send_packet_to (name, packet)
 		@session.buddies[name].send_packet(packet)
 	end
@@ -124,5 +149,4 @@ class Torchat
 	def send_message_to (name, message)
 		@session.buddies[name].send_message(message)
 	end
-
 end

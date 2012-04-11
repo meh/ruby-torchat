@@ -144,6 +144,9 @@ class Torchatd
 		when :add
 			profile.add_buddy rest
 
+		when :addtmp
+			profile.add_temporary_buddy rest
+
 		when :status
 			if Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
 				if buddy = profile.buddies[rest]
@@ -329,7 +332,7 @@ EM.run {
 				d.connected buddy
 			end
 
-			s.when :removed do |buddy|
+			s.when :removal do |buddy|
 				d.removed buddy
 			end
 

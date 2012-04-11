@@ -113,12 +113,17 @@ class Buddy
 	def pong!;    @pinged = false; end
 
 	def removed?; @removed;        end
-	def removed!; @removed = true; end
+	def remove!;  @removed = true; end
 
 	def blocked?; @blocked;         end
-	def allowed?; !blocked?;        end
+	def allowed?; !@blocked;        end
 	def block!;   @blocked = true;  end
 	def allow!;   @blocked = false; end
+
+	def temporary?; @temporary;         end
+	def permanent?; !@temporary;        end
+	def temporary!; @temporary = true;  end
+	def permanent!; @temporary = false; end
 
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?

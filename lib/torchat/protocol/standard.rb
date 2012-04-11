@@ -21,6 +21,9 @@ require 'digest/md5'
 
 class Torchat; module Protocol
 
+# This packet is sent when we receive a packet we don't know about.
+#
+# It can contain the name of the packet or just nothing.
 define_packet :not_implemented do
 	define_unpacker_for 0 .. 1
 
@@ -29,6 +32,12 @@ define_packet :not_implemented do
 	end
 end
 
+# This packet is used as the entry point for authentication,
+# it contains the address of the sender and cookie.
+#
+# Once received the receiver has to send back a pong packet with the cookie.
+#
+# Despite the name it's not actually used as keep alive packet.
 define_packet :ping do
 	define_unpacker_for 2
 
@@ -62,6 +71,10 @@ define_packet :ping do
 	end
 end
 
+# This packet is the endpoint of the authentication, it contains the cookie
+# received in the ping packet.
+#
+# Despite the name it's not actually used as keep alive packet.
 define_packet :pong do
 	define_unpacker_for 1
 
@@ -70,6 +83,7 @@ define_packet :pong do
 	end
 end
 
+# This packet tells the other end what client we are using.
 define_packet :client do
 	define_unpacker_for 1
 
@@ -81,6 +95,7 @@ define_packet :client do
 	alias to_str name
 end
 
+# This packet tells the other end the version of the client we are using.
 define_packet :version do
 	define_unpacker_for 1
 
@@ -91,6 +106,8 @@ define_packet :version do
 	alias to_str to_s
 end
 
+# This packet is an embedded extension of the standard protocol, it's used
+# to tell the other end what protocol extensions we support.
 define_packet :supports do
 	define_unpacker_for 0 .. -1
 
@@ -109,6 +126,9 @@ define_packet :supports do
 	end
 end
 
+# This packet tells the other end our status, it's also used as keep alive packet.
+#
+# The current supported status names are: available, away and xa.
 define_packet :status do
 	def self.valid? (name)
 		%w(available away xa).include?(name.to_s.downcase)
@@ -147,10 +167,11 @@ define_packet :status do
 	end
 end
 
+# This packet tells the other end our name, it can be empty.
 define_packet :profile_name do
 	define_unpacker_for 0 .. 1
 
-	def initialize (name)
+	def initialize (name = nil)
 		super()
 
 		@internal = name.force_encoding('UTF-8') if name
@@ -163,10 +184,11 @@ define_packet :profile_name do
 	alias to_str to_s
 end
 
+# This packet tells the other end our description, it can be empty.
 define_packet :profile_text do
 	define_unpacker_for 0 .. 1
 
-	def initialize (text)
+	def initialize (text = nil)
 		super()
 
 		@internal = text.force_encoding('UTF-8') if text
@@ -179,6 +201,10 @@ define_packet :profile_text do
 	alias to_str to_s
 end
 
+# This packet sends the other end the alpha channel of our avatar.
+#
+# If the image has no alpha channel its content is empty, it MUST be
+# sent before the profile_avatar packet.
 define_packet :profile_avatar_alpha do
 	define_unpacker_for 0 .. 1 do |data|
 		data if data && (data.empty? || data.bytesize != 4096)
@@ -193,6 +219,7 @@ define_packet :profile_avatar_alpha do
 	end
 end
 
+# This packet sends the other end the rgb channels of our avatar.
 define_packet :profile_avatar do
 	define_unpacker_for 0 .. 1 do |data|
 		data if data && (data.empty? || data.bytesize == 12288)
@@ -207,6 +234,10 @@ define_packet :profile_avatar do
 	end
 end
 
+# This packet is sent to make the other end add yourself to the permanent contacts.
+#
+# In the standard protocol, this is useless, I support the temporary contacts because
+# it is useful in the case of groupchats.
 define_packet :add_me do
 	define_unpacker_for 0
 end

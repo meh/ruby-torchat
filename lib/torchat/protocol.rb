@@ -152,10 +152,8 @@ class Packet
 		else
 			define_unpacker do |data|
 				if data.nil? || data.empty?
-					if range.end == 0
+					if range.begin == 0 || range.end == 0
 						next
-					elsif range.begin == 0
-						next [nil]
 					else
 						raise ArgumentError, "wrong number of arguments (0 for #{range.begin})"
 					end
@@ -184,10 +182,18 @@ class Packet
 				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}>"
 			end
 		elsif range.end == 1
-			define_method :initialize do |value|
-				super()
+			if range.begin == 0
+				define_method :initialize do |value = nil|
+					super()
 
-				@internal = value
+					@internal = value
+				end
+			else
+				define_method :initialize do |value|
+					super()
+
+					@internal = value
+				end
 			end
 
 			define_method :pack do

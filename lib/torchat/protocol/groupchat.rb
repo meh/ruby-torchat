@@ -20,8 +20,37 @@
 class Torchat; module Protocol
 
 define_extension :groupchat do
-	define_packet :groupchat_message do
+	# this packet is sent to the person you want to invite to the groupchat
+	# the packet only contains the id of the groupchat
+	define_packet :groupchat_invite do
+		define_unpacker_for 1
 
+		def initialize (id = nil)
+			@internal = id || rand.to_s
+		end
+
+		def id
+			@internal
+		end
+	end
+
+	define_packet :groupchat_invited do
+
+	end
+
+	define_packet :groupchat_participants do
+
+	end
+
+	define_packet :groupchat_message do
+		define_unpacker_for 2
+
+		attr_accessor :id, :message
+
+		def initialize (id, message)
+			@id      = id
+			@message = message
+		end
 	end
 end
 

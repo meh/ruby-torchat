@@ -44,8 +44,14 @@ class Session
 
 		@connection_timeout = 60
 
+		on :unknown do |line, buddy|
+			buddy.send_packet :not_implemented, line.split(' ').first
+		end
+
 		on :verification do |buddy|
-			add_buddy buddy
+			# this actually gets executed only if the buddy doesn't exist
+			# so we can still check if the buddy is permanent below
+			add_temporary_buddy buddy
 
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
@@ -54,7 +60,9 @@ class Session
 			buddy.send_packet :profile_name, name        if name
 			buddy.send_packet :profile_text, description if description
 
-			buddy.send_packet :add_me
+			if buddy.permanent?
+				buddy.send_packet :add_me
+			end
 
 			buddy.send_packet :status, status
 		end
@@ -69,6 +77,10 @@ class Session
 			buddy.ready!
 
 			fire :ready, buddy
+		end
+
+		on :add_me do |packet, buddy|
+			buddy.permanent!
 		end
 
 		on :remove_me do |packet, buddy|
@@ -211,7 +223,11 @@ class Session
 	end
 
 	def add_buddy (id, ali = nil)
-		return if self.id == id || buddies.has_key?(id)
+		if buddy = buddies[id]
+			buddy.permanent!
+
+			return buddy
+		end
 
 		buddy = if id.is_a? Buddy
 			id
@@ -219,8 +235,34 @@ class Session
 			Buddy.new(self, id)
 		end
 
-		buddy.alias = ali if ali
+		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
 
+		buddy.permanent!
+		buddy.alias = ali
+		
+		buddies << buddy and fire :added, buddy
+
+		buddy.connect if online?
+
+		buddy
+	end
+
+	def add_temporary_buddy (id, ali = nil)
+		if buddy = buddies[id]
+			return buddy
+		end
+
+		buddy = if id.is_a? Buddy
+			id
+		else
+			Buddy.new(self, id)
+		end
+
+		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
+
+		buddy.temporary!
+		buddy.alias = ali
+		
 		buddies << buddy and fire :added, buddy
 
 		buddy.connect if online?
@@ -237,12 +279,17 @@ class Session
 			buddies.delete(id)
 		end
 
-		buddy.send_packet :remove_me
-		buddy.removed!
+		buddy.remove!
 
-		fire :removed, buddy
+		fire :removal, buddy
 
-		set_timeout 5 do
+		if buddy.permanent?
+			buddy.send_packet :remove_me
+
+			set_timeout 5 do
+				buddy.disconnect
+			end
+		else
 			buddy.disconnect
 		end
 
