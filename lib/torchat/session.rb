@@ -52,7 +52,7 @@ class Session
 		on :verification do |buddy|
 			# this actually gets executed only if the buddy doesn't exist
 			# so we can still check if the buddy is permanent below
-			add_temporary_buddy buddy
+			buddies.add_temporary buddy
 
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
