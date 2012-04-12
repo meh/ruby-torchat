@@ -148,7 +148,7 @@ class Torchatd
 			profile.buddies.add rest
 
 		when :addtmp
-			profile.add_temporary_buddy rest
+			profile.buddies.add_temporary rest
 
 		when :status
 			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
