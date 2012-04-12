@@ -103,7 +103,7 @@ def self.packet (*args)
 end
 
 def self.unpack (data, from = nil)
-	name, data = data.split(' ', 2)
+	name, data = data.chomp.split(' ', 2)
 
 	unless packet = self[name]
 		raise ArgumentError, "#{name} packet unknown"

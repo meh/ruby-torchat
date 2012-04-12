@@ -110,6 +110,9 @@ class Torchatd
 	def process (connection, line)
 		command, rest = line.split(' ', 2)
 
+		command.force_encoding 'UTF-8' if command
+		rest.force_encoding 'UTF-8'    if rest
+
 		case command.downcase.to_sym
 		when :starttls
 			if connection.ssl
@@ -199,7 +202,9 @@ class Torchatd
 		return unless @buddies.include? packet.from
 
 		if packet.type == :message
-			send_everyone "#{packet.from.id} MESSAGE #{packet}"
+			packet.to_s.lines.each {|line|
+				send_everyone "#{packet.from.id} MESSAGE #{line}"
+			}
 		elsif packet.type == :status
 			send_everyone "#{packet.from.id} STATUS #{packet}"
 		elsif packet.type == :client
