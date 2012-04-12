@@ -148,7 +148,7 @@ class Torchatd
 			profile.add_temporary_buddy rest
 
 		when :status
-			if Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
+			if rest && Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} STATUS #{buddy.status}"
 				end
@@ -168,7 +168,7 @@ class Torchatd
 			end
 
 		when :name
-			if Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
+			if rest && Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} NAME #{buddy.name}"
 				end
@@ -177,7 +177,7 @@ class Torchatd
 			end
 
 		when :description
-			if Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
+			if rest && Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} DESCRIPTION #{buddy.description}"
 				end
