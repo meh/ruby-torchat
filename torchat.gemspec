@@ -7,7 +7,7 @@ Gem::Specification.new {|s|
 	s.email        = 'meh@paranoici.org'
 	s.homepage     = 'http://github.com/meh/ruby-torchat'
 	s.platform     = Gem::Platform::RUBY
-	s.summary      = 'Torchat implementation in Ruby'
+	s.summary      = 'Torchat implementation in Ruby, event-driven EventMachine based library.'
 
 	s.files         = `git ls-files`.split("\n")
 	s.executables   = `git ls-files -- bin/*`.split("\n").map { |f| File.basename(f) }

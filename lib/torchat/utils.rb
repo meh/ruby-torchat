@@ -17,6 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'securerandom'
+
 class Torchat
 	def self.debug (argument, options = {})
 		return if !ENV['DEBUG'] && !options[:force]
@@ -43,5 +45,9 @@ class Torchat
 		end
 
 		$stderr.puts output
+	end
+
+	def self.new_cookie
+		SecureRandom.uuid
 	end
 end

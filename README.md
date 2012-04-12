@@ -34,3 +34,7 @@ FetchDirInfoEarly 1
 CircuitBuildTimeout 30
 NumEntryGuards 6
 ```
+
+Contacting the author
+---------------------
+If you want to contact me on torchat my id is `7acbk6jpofsanyfp`.

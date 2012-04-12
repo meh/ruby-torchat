@@ -52,7 +52,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def receive_line (line)
-		packet = Protocol::Packet.from(@owner, line.chomp)
+		packet = Protocol.unpack(line.chomp, @owner)
 		
 		return unless packet.type.to_s.start_with 'file'
 
@@ -60,7 +60,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def send_packet (*args)
-		packet = Protocol::Packet.create(*args)
+		packet = Protocol.packet(*args)
 
 		if @delayed
 			@delayed << packet
@@ -72,7 +72,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def send_packet! (*args)
-		packet = Protocol::Packet.create(*args)
+		packet = Protocol.packet(*args)
 
 		Torchat.debug ">> #{@owner ? @owner.id : 'unknown'} #{packet.inspect}", level: 2
 

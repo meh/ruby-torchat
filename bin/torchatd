@@ -42,6 +42,10 @@ OptionParser.new do |o|
 	o.on '-o', '--online' do
 		options[:online] = true
 	end
+
+	o.on '-d', '--debug [LEVEL=1]', 'enable debug mode' do |value|
+		ENV['DEBUG'] = value || ?1
+	end
 end.parse!
 
 class Torchatd
@@ -106,6 +110,9 @@ class Torchatd
 	def process (connection, line)
 		command, rest = line.split(' ', 2)
 
+		command.force_encoding 'UTF-8' if command
+		rest.force_encoding 'UTF-8'    if rest
+
 		case command.downcase.to_sym
 		when :starttls
 			if connection.ssl
@@ -140,8 +147,11 @@ class Torchatd
 		when :add
 			profile.add_buddy rest
 
+		when :addtmp
+			profile.add_temporary_buddy rest
+
 		when :status
-			if Torchat::Protocol.valid_address?(rest)
+			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} STATUS #{buddy.status}"
 				end
@@ -161,7 +171,7 @@ class Torchatd
 			end
 
 		when :name
-			if Torchat::Protocol.valid_address?(rest)
+			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} NAME #{buddy.name}"
 				end
@@ -170,7 +180,7 @@ class Torchatd
 			end
 
 		when :description
-			if Torchat::Protocol.valid_address?(rest)
+			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} DESCRIPTION #{buddy.description}"
 				end
@@ -192,7 +202,9 @@ class Torchatd
 		return unless @buddies.include? packet.from
 
 		if packet.type == :message
-			send_everyone "#{packet.from.id} MESSAGE #{packet}"
+			packet.to_s.lines.each {|line|
+				send_everyone "#{packet.from.id} MESSAGE #{line}"
+			}
 		elsif packet.type == :status
 			send_everyone "#{packet.from.id} STATUS #{packet}"
 		elsif packet.type == :client
@@ -321,7 +333,7 @@ EM.run {
 				d.connected buddy
 			end
 
-			s.when :removed do |buddy|
+			s.when :removal do |buddy|
 				d.removed buddy
 			end
 

@@ -29,13 +29,17 @@ class Buddy
 		def to_image
 			return unless @rgb
 
-			require 'RMagick'
+			require 'chunky_png'
 
-			Magick::Image.new(64, 64).tap {|image|
+			ChunkyPNG::Image.new(64, 64, ChunkyPNG::Color::TRANSPARENT).tap {|image|
 				@rgb.bytes.each_slice(3).with_index {|(r, g, b), index|
 					x, y = index % 64, index / 64
-
-					image.pixel_color(x, y, Magick::Pixel.new(r, g, b, @alpha ? @alpha[index] : nil))
+					
+					image[x, y] = if @alpha
+						ChunkyPNG::Color.rgba(r, g, b, @alpha[index])
+					else
+						ChunkyPNG::Color.rgb(r, g, b)
+					end
 				}
 			}
 		end
@@ -50,20 +54,29 @@ class Buddy
 	def port; 11009; end
 
 	def initialize (session, id, incoming = nil, outgoing = nil)
-		unless Protocol.valid_address?(id)
+		unless Tor.valid_id?(id)
 			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 
-		@session = session
-		@id      = id[/^(.*?)(\.onion)?$/, 1]
-		@address = "#{@id}.onion"
-		@avatar  = Avatar.new
-		@client  = Client.new
+		@session  = session
+		@id       = id[/^(.*?)(\.onion)?$/, 1]
+		@address  = "#{@id}.onion"
+		@avatar   = Avatar.new
+		@client   = Client.new
+		@supports = []
 
 		@tries = 0
 
 		own! incoming
 		own! outgoing
+	end
+
+	def supports (*what)
+		@supports.concat(what).uniq!
+	end
+
+	def supports? (what)
+		@supports.include?(what.to_sym.downcase)
 	end
 
 	def status
@@ -104,12 +117,17 @@ class Buddy
 	def pong!;    @pinged = false; end
 
 	def removed?; @removed;        end
-	def removed!; @removed = true; end
+	def remove!;  @removed = true; end
 
 	def blocked?; @blocked;         end
-	def allowed?; !blocked?;        end
+	def allowed?; !@blocked;        end
 	def block!;   @blocked = true;  end
 	def allow!;   @blocked = false; end
+
+	def temporary?; @temporary;         end
+	def permanent?; !@temporary;        end
+	def temporary!; @temporary = true;  end
+	def permanent!; @temporary = false; end
 
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?
@@ -160,7 +178,7 @@ class Buddy
 	def connected
 		return if connected?
 
-		@last_received = Protocol::Packet.create :status, :available
+		@last_received = Protocol.packet :status, :available
 
 		@connecting = false
 		@connected  = true

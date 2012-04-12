@@ -33,11 +33,15 @@ class Buddies < Hash
 	end
 
 	def [] (name)
+		name = name.id if name.is_a? Buddy
+
 		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.name }
 	end
 
 	def []= (name, buddy)
-		unless Protocol.valid_address?(name)
+		name = name.id if name.is_a? Buddy
+
+		unless Tor.valid_address?(name) || Tor.valid_id?(name)
 			name = find { |a, b| name === b.name }.id
 		end
 
