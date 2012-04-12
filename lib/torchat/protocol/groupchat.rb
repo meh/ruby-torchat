@@ -34,7 +34,7 @@ class Torchat; module Protocol
 # participants and sends them a packet asking them if they're really participating
 # in the groupchat. The contacts that aren't in his buddy list are added as temporary
 # buddies. If any of the participants are in his blocked list, a leave packet will be
-# sent, refusing to join the groupchat.
+# sent, refusing to join the groupchat, otherwise a join packet will be sent.
 #
 # After the participants packet an invited packet is sent to the already present participants,
 # in this way they'll know who invited that person and that that person is going to join the
@@ -59,29 +59,6 @@ define_extension :groupchat do
 		def id
 			@internal
 		end
-	end
-
-	# This packet is used to tell the already present participants about who you invited.
-	define_packet :groupchat_invited do
-		define_unpacker_for 2
-
-		attr_accessor :id
-
-		def initialize (id, buddy)
-			@id = id
-
-			@internal = buddy.is_a?(Buddy) ? buddy.id : buddy
-		end
-
-		def pack
-			super("#{id} #{to_s}")
-		end
-
-		def to_s
-			@internal
-		end
-
-		alias to_str to_s
 	end
 
 	# This packet is used to tell the invited who are the participants.
@@ -116,6 +93,51 @@ define_extension :groupchat do
 		end
 	end
 
+	# This packet is sent to accept the invitation to the groupchat
+	define_packet :groupchat_join do
+		define_unpacker_for 1
+
+		def id
+			@internal
+		end
+	end
+
+	# This packet is sent to every participant in a groupchat to tell them you're leaving
+	define_packet :groupchat_leave do
+		define_unpacker_for 1 .. 2
+
+		attr_accessor :id, :reason
+
+		def initialize (id, reason = nil)
+			@id = id
+
+			@reason = reason
+		end
+	end
+
+	# This packet is used to tell the already present participants about who you invited.
+	define_packet :groupchat_invited do
+		define_unpacker_for 2
+
+		attr_accessor :id
+
+		def initialize (id, buddy)
+			@id = id
+
+			@internal = buddy.is_a?(Buddy) ? buddy.id : buddy
+		end
+
+		def pack
+			super("#{id} #{to_s}")
+		end
+
+		def to_s
+			@internal
+		end
+
+		alias to_str to_s
+	end
+
 	# This packet is sent to all participants and is just a message.
 	define_packet :groupchat_message do
 		define_unpacker_for 2
@@ -139,18 +161,6 @@ define_extension :groupchat do
 		alias to_str to_s
 	end
 
-	# This packet is sent to every participant in a groupchat to tell them you're leaving
-	define_packet :groupchat_leave do
-		define_unpacker_for 1 .. 2
-
-		attr_accessor :id, :reason
-
-		def initialize (id, reason = nil)
-			@id = id
-
-			@reason = reason
-		end
-	end
 end
 
 end; end
