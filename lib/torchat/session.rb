@@ -38,8 +38,9 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
+		@buddies = Buddies.new(self)
+
 		@callbacks = Hash.new { |h, k| h[k] = [] }
-		@buddies   = Buddies.new
 		@timers    = []
 
 		@connection_timeout = 60
@@ -84,8 +85,7 @@ class Session
 		end
 
 		on :remove_me do |packet, buddy|
-			remove_buddy buddy
-
+			buddies.remove buddy
 			buddy.disconnect
 		end
 
@@ -220,80 +220,6 @@ class Session
 		buddies.each_value {|buddy|
 			buddy.send_packet :status, @status
 		}
-	end
-
-	def add_buddy (id, ali = nil)
-		if buddy = buddies[id]
-			buddy.permanent!
-
-			return buddy
-		end
-
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(self, id)
-		end
-
-		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
-
-		buddy.permanent!
-		buddy.alias = ali
-		
-		buddies << buddy and fire :added, buddy
-
-		buddy.connect if online?
-
-		buddy
-	end
-
-	def add_temporary_buddy (id, ali = nil)
-		if buddy = buddies[id]
-			return buddy
-		end
-
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(self, id)
-		end
-
-		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
-
-		buddy.temporary!
-		buddy.alias = ali
-		
-		buddies << buddy and fire :added, buddy
-
-		buddy.connect if online?
-
-		buddy
-	end
-
-	def remove_buddy (id)
-		return unless buddies.has_key? id
-
-		buddy = if id.is_a? Buddy
-			buddies.delete(buddies.key(id))
-		else
-			buddies.delete(id)
-		end
-
-		buddy.remove!
-
-		fire :removal, buddy
-
-		if buddy.permanent?
-			buddy.send_packet :remove_me
-
-			set_timeout 5 do
-				buddy.disconnect
-			end
-		else
-			buddy.disconnect
-		end
-
-		buddy
 	end
 
 	def on (what, &block)

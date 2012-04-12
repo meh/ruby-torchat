@@ -142,10 +142,10 @@ class Torchatd
 			connection.send_response "LIST #{profile.buddies.keys.join(' ')}"
 
 		when :remove
-			profile.remove_buddy rest
+			profile.buddies.remove rest
 
 		when :add
-			profile.add_buddy rest
+			profile.buddies.add rest
 
 		when :addtmp
 			profile.add_temporary_buddy rest

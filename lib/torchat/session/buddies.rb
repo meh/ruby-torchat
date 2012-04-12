@@ -22,6 +22,12 @@ require 'torchat/session/buddy'
 class Torchat; class Session
 
 class Buddies < Hash
+	attr_reader :session
+
+	def initialize (session)
+		@session = session
+	end
+
 	def has_key? (name)
 		name = name.id if name.is_a? Buddy
 
@@ -52,6 +58,80 @@ class Buddies < Hash
 
 	def << (buddy)
 		self[buddy.id] = buddy
+	end
+
+	def add (id, ali = nil)
+		if buddy = self[id]
+			buddy.permanent!
+
+			return buddy
+		end
+
+		buddy = if id.is_a? Buddy
+			id
+		else
+			Buddy.new(session, id)
+		end
+
+		raise ArgumentError, 'you cannot add yourself' if session.id == buddy.id
+
+		buddy.permanent!
+		buddy.alias = ali
+		
+		self << buddy and fire :added, buddy
+
+		buddy.connect if online?
+
+		buddy
+	end
+
+	def add_temporary (id, ali = nil)
+		if buddy = self[id]
+			return buddy
+		end
+
+		buddy = if id.is_a? Buddy
+			id
+		else
+			Buddy.new(session, id)
+		end
+
+		raise ArgumentError, 'you cannot add yourself' if session.id == buddy.id
+
+		buddy.temporary!
+		buddy.alias = ali
+
+		self << buddy and fire :added, buddy
+
+		buddy.connect if online?
+
+		buddy
+	end
+
+	def remove (id)
+		return unless has_key? id
+
+		buddy = if id.is_a? Buddy
+			delete(key(id))
+		else
+			delete(id)
+		end
+
+		buddy.remove!
+
+		session.fire :removal, buddy
+
+		if buddy.permanent?
+			buddy.send_packet :remove_me
+
+			session.set_timeout 5 do
+				buddy.disconnect
+			end
+		else
+			buddy.disconnect
+		end
+
+		buddy
 	end
 end
 
