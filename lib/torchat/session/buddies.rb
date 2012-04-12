@@ -78,9 +78,9 @@ class Buddies < Hash
 		buddy.permanent!
 		buddy.alias = ali
 		
-		self << buddy and fire :added, buddy
+		self << buddy and session.fire :added, buddy
 
-		buddy.connect if online?
+		buddy.connect if session.online?
 
 		buddy
 	end
@@ -101,9 +101,9 @@ class Buddies < Hash
 		buddy.temporary!
 		buddy.alias = ali
 
-		self << buddy and fire :added, buddy
+		self << buddy and session.fire :added, buddy
 
-		buddy.connect if online?
+		buddy.connect if session.online?
 
 		buddy
 	end
