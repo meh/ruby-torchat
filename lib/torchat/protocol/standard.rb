@@ -209,7 +209,7 @@ define_packet :profile_name do
 	end
 
 	def pack
-		super(@internal.encode('UTF-8'))
+		super(@internal ? @internal.encode('UTF-8') : nil)
 	end
 
 	def to_s
@@ -228,7 +228,7 @@ define_packet :profile_text do
 	end
 
 	def pack
-		super(@internal.encode('UTF-8'))
+		super(@internal ? @internal.encode('UTF-8') : nil)
 	end
 
 	def to_s
