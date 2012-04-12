@@ -29,13 +29,17 @@ class Buddy
 		def to_image
 			return unless @rgb
 
-			require 'RMagick'
+			require 'chunky_png'
 
-			Magick::Image.new(64, 64).tap {|image|
+			ChunkyPNG::Image.new(64, 64, ChunkyPNG::Color::TRANSPARENT).tap {|image|
 				@rgb.bytes.each_slice(3).with_index {|(r, g, b), index|
 					x, y = index % 64, index / 64
-
-					image.pixel_color(x, y, Magick::Pixel.new(r, g, b, @alpha ? @alpha[index] : nil))
+					
+					image[x, y] = if @alpha
+						ChunkyPNG::Color.rgba(r, g, b, @alpha[index])
+					else
+						ChunkyPNG::Color.rgb(r, g, b)
+					end
 				}
 			}
 		end
