@@ -108,10 +108,7 @@ class Torchatd
 	end
 
 	def process (connection, line)
-		command, rest = line.split(' ', 2)
-
-		command.force_encoding 'UTF-8' if command
-		rest.force_encoding 'UTF-8'    if rest
+		command, rest = line.force_encoding('UTF-8').split(' ', 2)
 
 		case command.downcase.to_sym
 		when :starttls
