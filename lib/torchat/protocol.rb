@@ -67,12 +67,16 @@ def self.has_packet? (extension = nil, name)
 	@packets[extension].has_key?(name)
 end
 
-def self.packets
-	@packets.map { |extension, packets|
-		packets.map { |name, packet|
-			packet
-		}
-	}.flatten
+def self.packets (extension = nil)
+	if extension
+		@packets[extension].values
+	else
+		@packets.map { |extension, packets|
+			packets.map { |name, packet|
+				packet
+			}
+		}.flatten
+	end
 end
 
 def self.extensions
