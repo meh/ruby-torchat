@@ -33,8 +33,8 @@ class FileTransfer
 
 	alias length size
 
-	def initialize (id, name, size)
-		@id   = id
+	def initialize (id = nil, name, size)
+		@id   = id || Torchat.new_cookie
 		@name = name
 		@size = size
 

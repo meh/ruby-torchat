@@ -89,8 +89,8 @@ class Torchat
 		@session.start
 
 		if @config['buddies']
-			@config['buddies'].each {|id, ali|
-				@session.add_buddy(id).alias = ali
+			@config['buddies'].each {|id|
+				@session.buddies.add(id)
 			}
 		end
 
@@ -98,7 +98,7 @@ class Torchat
 			File.open(@buddy_list).lines.each {|line|
 				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
 
-				@session.add_buddy(id, ali)
+				@session.buddies.add(id, ali)
 			}
 		end
 
@@ -106,7 +106,7 @@ class Torchat
 			File.open(@blocked_buddy_list).lines.each {|line|
 				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
 
-				@session.add_temporary_buddy(id, ali).block!
+				@session.buddies.add_temporary(id, ali).block!
 			}
 		end
 	end

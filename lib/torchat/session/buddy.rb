@@ -145,6 +145,14 @@ class Buddy
 		send_packet :message, text
 	end
 
+	def send_file (path)
+		session.file_transfers.send_file(self, path)
+	end
+
+	def send_blob (path)
+		session.file_transfers.send_blob(self, path)
+	end
+
 	def online?; connected?; end
 	def offline?; !online?;  end
 

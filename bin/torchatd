@@ -142,13 +142,13 @@ class Torchatd
 			connection.send_response "LIST #{profile.buddies.keys.join(' ')}"
 
 		when :remove
-			profile.remove_buddy rest
+			profile.buddies.remove rest
 
 		when :add
-			profile.add_buddy rest
+			profile.buddies.add rest
 
 		when :addtmp
-			profile.add_temporary_buddy rest
+			profile.buddies.add_temporary rest
 
 		when :status
 			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))

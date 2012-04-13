@@ -21,11 +21,12 @@ require 'eventmachine'
 require 'em-socksify'
 
 require 'torchat/session/buddies'
+require 'torchat/session/file_transfers'
 
 class Torchat
 
 class Session
-	attr_reader   :config, :buddies, :id, :name, :description, :status, :file_transfers
+	attr_reader   :config, :id, :name, :description, :status, :buddies, :file_transfers
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -38,10 +39,11 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
-		@callbacks      = Hash.new { |h, k| h[k] = [] }
-		@buddies        = Buddies.new
-		@file_transfers = {}
-		@timers         = []
+		@buddies        = Buddies.new(self)
+		@file_transfers = FileTransfers.new(self)
+
+		@callbacks = Hash.new { |h, k| h[k] = [] }
+		@timers    = []
 
 		@connection_timeout = 60
 
@@ -52,7 +54,7 @@ class Session
 		on :verification do |buddy|
 			# this actually gets executed only if the buddy doesn't exist
 			# so we can still check if the buddy is permanent below
-			add_temporary_buddy buddy
+			buddies.add_temporary buddy
 
 			buddy.send_packet :client,  client
 			buddy.send_packet :version, version
@@ -85,8 +87,7 @@ class Session
 		end
 
 		on :remove_me do |packet, buddy|
-			remove_buddy buddy
-
+			buddies.remove buddy
 			buddy.disconnect
 		end
 
@@ -119,17 +120,17 @@ class Session
 		end
 
 		on :filename do |packet, buddy|
-			@file_transfers[packet.id] = FileTransfer.new(id, packet.name, packet.size).tap {|ft|
-				ft.from = buddy
-			}
+			file_transfers.receive_file(packet.id, packet.name, packet.size, buddy)
 		end
 
 		on :filedata do |packet, buddy|
-			next unless file_transfer = @file_transfers[packet.id]
+			next unless file_transfer = file_transfers[packet.id]
 
-			file_transfer.add_block packet.offset, packet.data, packet.md5
-
-			buddy.send_packet :filedata_ok, packet.id, packet.offset
+			if file_transfer.add_block(packet.offset, packet.data, packet.md5).valid?
+				buddy.send_packet :filedata_ok, packet.id, packet.offset
+			else
+				buddy.send_packet :filedata_error, packet.id, packet.offset
+			end
 		end
 
 		on :filedata_ok do |packet, buddy|
@@ -243,100 +244,6 @@ class Session
 		buddies.each_value {|buddy|
 			buddy.send_packet :status, @status
 		}
-	end
-
-	def add_buddy (id, ali = nil)
-		if buddy = buddies[id]
-			buddy.permanent!
-
-			return buddy
-		end
-
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(self, id)
-		end
-
-		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
-
-		buddy.permanent!
-		buddy.alias = ali
-		
-		buddies << buddy and fire :added, buddy
-
-		buddy.connect if online?
-
-		buddy
-	end
-
-	def add_temporary_buddy (id, ali = nil)
-		if buddy = buddies[id]
-			return buddy
-		end
-
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(self, id)
-		end
-
-		raise ArgumentError, 'you cannot add yourself' if self.id == buddy.id
-
-		buddy.temporary!
-		buddy.alias = ali
-		
-		buddies << buddy and fire :added, buddy
-
-		buddy.connect if online?
-
-		buddy
-	end
-
-	def remove_buddy (id)
-		return unless buddies.has_key? id
-
-		buddy = if id.is_a? Buddy
-			buddies.delete(buddies.key(id))
-		else
-			buddies.delete(id)
-		end
-
-		buddy.remove!
-
-		fire :removal, buddy
-
-		if buddy.permanent?
-			buddy.send_packet :remove_me
-
-			set_timeout 5 do
-				buddy.disconnect
-			end
-		else
-			buddy.disconnect
-		end
-
-		buddy
-	end
-
-	def start_file_transfer (file, to)
-
-	end
-	
-	def interrupt_file_transfer (id)
-		unless file_transfer = @file_transfers[id]
-			raise ArgumentError, 'unexistent file transfer'
-		end
-
-		unless buddy = file_transfer.from || file_transfer.to
-			raise ArgumentError, 'the file transfer is unstoppable'
-		end
-
-		if file_transfer.from
-			buddy.send_packet :file_stop_sending, id
-		else
-			buddy.send_packet :file_stop_receiving, id
-		end
 	end
 
 	def on (what, &block)

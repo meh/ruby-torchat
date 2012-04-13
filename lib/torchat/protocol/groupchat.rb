@@ -49,7 +49,7 @@ class Torchat; module Protocol
 define_extension :groupchat do
 	# This packet is sent to the person you want to invite to the groupchat,
 	# the packet only contains the id of the groupchat.
-	define_packet :groupchat_invite do
+	define_packet :invite do
 		define_unpacker_for 1
 
 		def initialize (id = nil)
@@ -62,7 +62,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is used to tell the invited who are the participants.
-	define_packet :groupchat_participants do
+	define_packet :participants do
 		define_unpacker_for 1 .. -1
 
 		attr_accessor :id
@@ -85,7 +85,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is used to ask if the person is really participating in the groupchat
-	define_packet :groupchat_participating? do
+	define_packet :participating? do
 		define_unpacker_for 1
 
 		def id
@@ -94,7 +94,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is sent to accept the invitation to the groupchat
-	define_packet :groupchat_join do
+	define_packet :join do
 		define_unpacker_for 1
 
 		def id
@@ -103,7 +103,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is sent to every participant in a groupchat to tell them you're leaving
-	define_packet :groupchat_leave do
+	define_packet :leave do
 		define_unpacker_for 1 .. 2
 
 		attr_accessor :id, :reason
@@ -116,7 +116,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is used to tell the already present participants about who you invited.
-	define_packet :groupchat_invited do
+	define_packet :invited do
 		define_unpacker_for 2
 
 		attr_accessor :id
@@ -139,7 +139,7 @@ define_extension :groupchat do
 	end
 
 	# This packet is sent to all participants and is just a message.
-	define_packet :groupchat_message do
+	define_packet :message do
 		define_unpacker_for 2
 
 		attr_accessor :id
@@ -160,7 +160,6 @@ define_extension :groupchat do
 
 		alias to_str to_s
 	end
-
 end
 
 end; end

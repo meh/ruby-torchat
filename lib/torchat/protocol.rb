@@ -39,43 +39,56 @@ def self.decode (data)
 	data
 end
 
-@packets    = {}
+@packets    = Hash.new { |h, k| h[k] = {} }
 @extensions = []
 
-def self.[] (name)
-	@packets[name.to_sym.downcase]
+def self.[] (extension = nil, name)
+	extension = extension.to_sym.downcase if extension
+	name      = name.to_sym.downcase
+
+	@packets[extension][name]
 end
 
-def self.[]= (name, value)
+def self.[]= (extension = nil, name, value)
+	extension = extension.to_sym.downcase if extension
+	name      = name.to_sym.downcase
+
 	if value.nil?
-		@packets.delete(name.to_sym.downcase)
+		@packets[extension].delete(name)
 	else
-		@packets[name.to_sym.downcase] = value
+		@packets[extension][name] = value
 	end
 end
 
-def self.has_packet? (name)
-	@packets.has_key?(name.to_sym.downcase)
+def self.has_packet? (extension = nil, name)
+	extension = extension.to_sym.downcase if extension
+	name      = name.to_sym.downcase
+
+	@packets[extension].has_key?(name)
 end
 
 def self.packets
-	@packets.values
+	@packets.map { |extension, packets|
+		packets.map { |name, packet|
+			packet
+		}
+	}.flatten
 end
 
 def self.extensions
 	@extensions.map {|name|
-		Struct.new(:name, :packets).new(name, packets.select { |p| p.extension == name })
+		Struct.new(:name, :packets).new(name, packets(name))
 	}
 end
 
 def self.define_packet (name, &block)
-	raise ArgumentError, "#{name} already exists" if has_packet?(name)
+	raise ArgumentError, "#{name} already exists" if has_packet?(@extension, name)
 
-	self[name] = Packet.define(name, @extension, &block)
+	self[@extension, name] = Packet.define(name, @extension, &block)
 end
 
 def self.define_packet! (name, &block)
-	self[name] = nil
+	self[@extension, name] = nil
 
 	define_packet(name, &block)
 end
@@ -83,9 +96,9 @@ end
 def self.define_extension (name)
 	@extensions.push(name).uniq!
 
-	@extension = name
+	tmp, @extension = @extension, name
 	result = yield
-	@extension = nil
+	@extension = tmp
 
 	result
 end
@@ -94,7 +107,7 @@ def self.packet (*args)
 	if args.first.is_a? Packet
 		args.first
 	else
-		unless packet = self[args.shift]
+		unless packet = self[*args.shift]
 			raise ArgumentError, "#{name} packet unknown"
 		end
 
@@ -105,7 +118,7 @@ end
 def self.unpack (data, from = nil)
 	name, data = data.chomp.split(' ', 2)
 
-	unless packet = self[name]
+	unless packet = self[name] || self[*name.split('_', 2)]
 		raise ArgumentError, "#{name} packet unknown"
 	end
 
