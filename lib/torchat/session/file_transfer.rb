@@ -20,16 +20,15 @@
 require 'digest/md5'
 require 'forwardable'
 
-require 'torchat/file_transfer/blocks'
+require 'torchat/session/file_transfer/blocks'
 
 class Torchat
 
 class FileTransfer
 	extend Forwardable
 
-	attr_reader    :id, :name, :size, :blocks
-	attr_accessor  :from, :to
-	def_delegators :@blocks, :add_block
+	attr_reader   :id, :name, :size, :blocks
+	attr_accessor :from, :to
 
 	alias length size
 
@@ -49,6 +48,10 @@ class FileTransfer
 
 	def valid?
 		@blocks.all?(&:valid?)
+	end
+
+	def add_block (*args)
+		@blocks.add(*args)
 	end
 
 	def to_file

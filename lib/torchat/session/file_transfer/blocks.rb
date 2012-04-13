@@ -17,6 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'torchat/session/file_transfer/block'
+
 class Torchat; class FileTransfer
 
 class Blocks < Array
@@ -26,7 +28,7 @@ class Blocks < Array
 		@file_transfer = file_transfer
 	end
 
-	def add_block (offset, data, md5 = nil)
+	def add (offset, data, md5 = nil)
 		Block.new(self, offset, data, md5).tap {|block|
 			push block
 			sort_by!(&:offset)
