@@ -130,6 +130,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 				close_connection_after_writing
 
 				Torchat.debug 'someone sent a packet before the handshake'
+				Torchat.debug "the packet was #{packet.inspect}", level: 2
 
 				return
 			end
