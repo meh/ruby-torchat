@@ -267,7 +267,7 @@ define_packet :profile_avatar do
 	end
 
 	def inspect
-		"#<#{self.class.name}>"
+		"#<Torchat::Packet[#{type}]>"
 	end
 end
 
