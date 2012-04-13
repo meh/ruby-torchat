@@ -59,6 +59,10 @@ define_extension :groupchat do
 		def id
 			@internal
 		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+		end
 	end
 
 	# This packet is used to tell the invited who are the participants.
@@ -82,6 +86,10 @@ define_extension :groupchat do
 		def pack
 			super("#{id} #{join ' '}")
 		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{@internal.join ', '}>"
+		end
 	end
 
 	# This packet is used to ask if the person is really participating in the groupchat
@@ -91,6 +99,10 @@ define_extension :groupchat do
 		def id
 			@internal
 		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+		end
 	end
 
 	# This packet is sent to accept the invitation to the groupchat
@@ -99,6 +111,10 @@ define_extension :groupchat do
 
 		def id
 			@internal
+		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
 		end
 	end
 
@@ -112,6 +128,10 @@ define_extension :groupchat do
 			@id = id
 
 			@reason = reason
+		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{reason.inspect}" if reason}>"
 		end
 	end
 
@@ -136,6 +156,10 @@ define_extension :groupchat do
 		end
 
 		alias to_str to_s
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s.inspect}>"
+		end
 	end
 
 	# This packet is sent to all participants and is just a message.
@@ -151,7 +175,7 @@ define_extension :groupchat do
 		end
 
 		def pack
-			super("#{id} #{message}")
+			super("#{id} #{to_s}")
 		end
 
 		def to_s
@@ -159,6 +183,10 @@ define_extension :groupchat do
 		end
 
 		alias to_str to_s
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s.inspect}>"
+		end
 	end
 end
 

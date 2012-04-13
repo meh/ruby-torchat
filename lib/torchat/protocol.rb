@@ -196,7 +196,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}>"
+				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]#{"(#{from.inspect})" if from}>"
 			end
 		elsif range.end == 1
 			if range.begin == 0
@@ -222,7 +222,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}#{": #{@internal.inspect}" if @internal}>"
+				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]#{"(#{from.inspect})" if from}#{": #{@internal.inspect}" if @internal}>"
 			end
 		else
 			define_method :initialize do |*args|
@@ -232,7 +232,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}: #{@internal.map(&:inspect).join(', ')}>"
+				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]#{"(#{from.inspect})" if from}: #{@internal.map(&:inspect).join(', ')}>"
 			end
 		end
 	end
@@ -244,7 +244,7 @@ class Packet
 	end
 
 	def pack (data)
-		"#{type}#{" #{Protocol.encode(data)}" if data}\n"
+		"#{"#{extension}_" if extension}#{type}#{" #{Protocol.encode(data)}" if data}\n"
 	end
 end
 
