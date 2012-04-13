@@ -132,6 +132,118 @@ def self.unpack (data, from = nil)
 	packet
 end
 
+class Packet
+	def self.define (name, extension = nil, &block)
+		Class.new(self, &block).tap {|c|
+			c.instance_eval {
+				define_singleton_method :type do name end
+				define_method :type do name end
+
+				define_singleton_method :extension do extension end
+				define_method :extension do extension end
+
+				define_singleton_method :inspect do
+					"#<Torchat::Packet: #{type}#{", #{extension}" if extension}>"
+				end
+			}
+		}
+	end
+
+	def self.define_unpacker (&block)
+		define_singleton_method :unpack do |data|
+			new(*block.call(data))
+		end
+	end
+
+	def self.define_unpacker_for (range, &block)
+		unless range.is_a? Range
+			range = range .. range
+		end
+
+		if block
+			define_unpacker &block
+		else
+			define_unpacker do |data|
+				if data.nil? || data.empty?
+					if range.begin == 0 || range.end == 0
+						next
+					else
+						raise ArgumentError, "wrong number of arguments (0 for #{range.begin})"
+					end
+				end
+
+				args = data.split ' ', range.end
+
+				if range.end == -1
+					range = range.begin .. args.length
+				end
+
+				unless range === args.length
+					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.begin ? range.begin : range.end})"
+				end
+
+				args
+			end
+		end
+
+		if range == (0 .. 0)
+			define_method :pack do
+				super('')
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}>"
+			end
+		elsif range.end == 1
+			if range.begin == 0
+				define_method :initialize do |value = nil|
+					super()
+
+					@internal = value
+				end
+			else
+				define_method :initialize do |value|
+					super()
+
+					@internal = value
+				end
+			end
+
+			define_method :pack do
+				super(@internal.to_s)
+			end
+
+			define_method :nil? do
+				@internal.nil?
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}#{": #{@internal.inspect}" if @internal}>"
+			end
+		else
+			define_method :initialize do |*args|
+				super()
+
+				@internal = args
+			end
+
+			define_method :inspect do
+				"#<Torchat::Packet[#{type}]#{"(#{from.inspect})" if from}: #{@internal.map(&:inspect).join(', ')}>"
+			end
+		end
+	end
+
+	attr_accessor :from, :at
+
+	def initialize
+		@at = Time.new
+	end
+
+	def pack (data)
+		"#{type}#{" #{Protocol.encode(data)}" if data}\n"
+	end
+end
+
 require 'torchat/protocol/standard'
 require 'torchat/protocol/groupchat'
 
