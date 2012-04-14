@@ -21,11 +21,12 @@ require 'eventmachine'
 require 'em-socksify'
 
 require 'torchat/session/buddies'
+require 'torchat/session/groupchats'
 
 class Torchat
 
 class Session
-	attr_reader   :config, :buddies, :id, :name, :description, :status
+	attr_reader   :config, :id, :name, :description, :status, :buddies, :groupchats
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -38,13 +39,15 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
-		@buddies = Buddies.new(self)
+		@buddies    = Buddies.new(self)
+		@groupchats = GroupChats.new(self)
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@timers    = []
 
 		@connection_timeout = 60
 
+		# standard protocol implementation
 		on :unknown do |line, buddy|
 			buddy.send_packet :not_implemented, line.split(' ').first
 		end
@@ -140,6 +143,47 @@ class Session
 				next if (Time.new.to_i - buddy.last_try.to_i) < (buddy.tries * 10)
 
 				buddy.connect
+			}
+		end
+
+		# groupchat implementation
+		on :groupchat_invite do |packet, buddy|
+			return if groupchats.has_key? packet.id
+
+			groupchats.create(packet.id).invited!
+		end
+
+		on :groupchat_participants do |packet, buddy|
+			return unless groupchats.has_key? packet.id
+
+			if packet.any? { |p| buddies[p] && buddies[p].blocked? }
+				buddy.send_packet [:groupchat, :leave], packet.id
+			else
+				buddy.send_packet [:groupchat, :join], packet.id
+
+				packet.each {|p|
+					buddy = buddies.add_temporary(p)
+
+					buddy.on :verification do
+						buddy.send_packet 
+					end
+
+					groupchats[packet.id].participants.push buddy
+				}
+
+				fire :joined, groupchats[packet.id]
+			end
+		end
+
+		on :groupchat_invited do |packet, buddy|
+			return unless groupchats.has_key? packet.id
+
+			groupchats[packet.id].add(packet.to_s)
+		end
+
+		on :disconnection do |buddy|
+			groupchats.each_value {|groupchat|
+				groupchat.delete(buddy)
 			}
 		end
 
