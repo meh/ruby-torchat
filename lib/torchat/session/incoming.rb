@@ -22,6 +22,10 @@ class Torchat; class Session
 class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	attr_accessor :owner
 
+	def post_init
+		@delayed = []
+	end
+
 	def receive_line (line)
 		if @session.offline?
 			close_connection_after_writing
@@ -98,7 +102,13 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		elsif packet.type == :pong
 			Torchat.debug "pong came with #{packet.cookie}", level: 2
 
-			return unless buddy = @session.buddies[@last_ping.id] || @temp_buddy
+			unless buddy = @session.buddies[@last_ping.id] || @temp_buddy
+				close_connection_after_writing
+
+				Torchat.debug 'pong received without a ping'
+
+				return
+			end
 
 			if buddy.blocked?
 				close_connection_after_writing
@@ -127,10 +137,14 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			buddy.pong!
 		else
 			unless @owner
-				close_connection_after_writing
+				if @last_ping
+					@delayed << packet
+				else
+					close_connection_after_writing
 
-				Torchat.debug 'someone sent a packet before the handshake'
-				Torchat.debug "the packet was #{packet.inspect}", level: 2
+					Torchat.debug 'someone sent a packet before the handshake'
+					Torchat.debug "the packet was #{packet.inspect}", level: 2
+				end
 
 				return
 			end
@@ -139,10 +153,15 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@owner.last_received = packet
 
-			@owner.session.received packet if @owner.connected?
+			@owner.session.received packet
 		end
 	rescue => e
 		Torchat.debug e
+	end
+
+	def verification_completed
+		@delayed.each { |p| @owner.session.received p }
+		@delayed = nil
 	end
 
 	def unbind
