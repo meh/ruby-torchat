@@ -111,9 +111,11 @@ def self.packet (*args)
 	if args.first.is_a? Packet
 		args.first
 	else
-		unless packet = self[*args.shift]
-			raise ArgumentError, "#{name} packet unknown"
+		unless packet = self[*args.first]
+			raise ArgumentError, "#{args.first.inspect} packet unknown"
 		end
+
+		args.shift
 
 		packet.new(*args)
 	end

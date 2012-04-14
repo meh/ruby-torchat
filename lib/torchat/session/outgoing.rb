@@ -47,7 +47,10 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def verification_completed
-		@delayed.each { |p| send_packet! *p }
+		@delayed.each {|packet|
+			send_packet! packet
+		}
+
 		@delayed = nil
 	end
 

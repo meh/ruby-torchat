@@ -102,7 +102,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		elsif packet.type == :pong
 			Torchat.debug "pong came with #{packet.cookie}", level: 2
 
-			unless buddy = @session.buddies[@last_ping.id] || @temp_buddy
+			unless buddy = (@session.buddies[@last_ping.id] || @temp_buddy) || !buddy.pinged?
 				close_connection_after_writing
 
 				Torchat.debug 'pong received without a ping'
@@ -160,7 +160,12 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def verification_completed
-		@delayed.each { |p| @owner.session.received p }
+		@delayed.each {|packet|
+			packet.from = @owner
+
+			@owner.session.received packet
+		}
+
 		@delayed = nil
 	end
 
