@@ -200,9 +200,10 @@ class Buddy
 
 		own! incoming
 
-		@outgoing.verification_completed
-
 		session.fire :verification, self
+
+		@outgoing.verification_completed
+		@incoming.verification_completed
 	end
 
 	def disconnect
