@@ -142,10 +142,20 @@ class Torchatd
 			profile.buddies.remove rest
 
 		when :add
-			profile.buddies.add rest
+			attribute, rest = rest.split(' ')
 
-		when :addtmp
-			profile.buddies.add_temporary rest
+			if rest && attribute == 'tmp'
+				profile.buddies.add_temporary rest
+			else
+				profile.buddies.add attribute
+			end
+
+		when :typing
+			id, mode = rest.split(' ')
+
+			if buddy = profile.buddies[id]
+				buddy.send_typing(mode)
+			end
 
 		when :status
 			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
@@ -215,6 +225,10 @@ class Torchatd
 		elsif packet.type == :remove_me
 			send_everyone "#{packet.from.id} REMOVE"
 		end
+	end
+
+	def typing (buddy, mode)
+		send_everyone "#{buddy.id} TYPING #{mode}"
 	end
 
 	def connected?; @connected; end
@@ -349,6 +363,10 @@ EM.run {
 					d.received packet
 				end
 			}
+
+			s.on :typing do |buddy, mode|
+				d.typing buddy, mode
+			end
 
 			s.online! if options[:online]
 		}

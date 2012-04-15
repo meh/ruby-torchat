@@ -143,6 +143,25 @@ class Session
 			}
 		end
 
+		# typing extension support
+		on :typing_start do |packet, buddy|
+			buddy.typing!
+
+			fire :typing, buddy, :start
+		end
+
+		on :typing_thinking do |packet, buddy|
+			buddy.thinking!
+
+			fire :typing, buddy, :thinking
+		end
+
+		on :typing_stop do |packet, buddy|
+			buddy.not_typing!
+
+			fire :typing, buddy, :stop
+		end
+
 		yield self if block_given?
 	end
 
