@@ -162,6 +162,12 @@ class Session
 			fire :typing, buddy, :stop
 		end
 
+		on :message do |packet, buddy|
+			buddy.not_typing!
+
+			fire :typing, buddy, :stop
+		end
+
 		yield self if block_given?
 	end
 
