@@ -86,6 +86,18 @@ define_extension :groupchat do
 		end
 	end
 
+	define_packet :not_participating! do
+		define_unpacker_for 1
+
+		def id
+			@internal
+		end
+
+		def inspect
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+		end
+	end
+
 	define_packet :join do
 		define_unpacker_for 1
 
