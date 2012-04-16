@@ -19,37 +19,7 @@
 
 class Torchat; module Protocol
 
-# The groupchat extension is made to support, you can guess it, groupchats.
-#
-# The following text describes the lifecycle of a group chat.
-#
-# The person that starts the groupchat starts it by inviting the first person
-# to it, the invite packet has a cookie inside that will also be the id of the
-# groupchat throughout all its lifecycle.
-#
-# After the invite packet a participants packet is sent to the invited person,
-# this packet has inside the list of ids of the current groupchat.
-#
-# After receiving the participants packet the contacts that aren't in his buddy list are added
-# as temporary buddies. If any of the participants are in his blocked list, a leave packet will
-# be sent, refusing to join the groupchat, otherwise a join packet will be sent.
-#
-# After that the invited sends all participants a participating? packet asking them if they're really
-# in the groupchat. They will answer with the participating! packet.
-#
-# After the join packet is received an invited packet is sent to the already present participants,
-# in this way they'll know who invited that person and that that person is going to join the
-# groupchat.
-#
-# The messaging in the groupchat is simply sent to every other participant from the sender
-# of the message.
-#
-# To exit the groupchat a leave packet is sent to every participant present in the groupchat.
-#
-# On disconnection of any of the participants it will obviously mean leaving the groupchat.
 define_extension :groupchat do
-	# This packet is sent to the person you want to invite to the groupchat,
-	# the packet only contains the id of the groupchat.
 	define_packet :invite do
 		define_unpacker_for 1
 
@@ -66,7 +36,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is used to tell the invited who are the participants.
 	define_packet :participants do
 		define_unpacker_for 1 .. -1
 
@@ -93,7 +62,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is used to ask if the person is really participating in the groupchat
 	define_packet :participating? do
 		define_unpacker_for 1
 
@@ -106,7 +74,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is used to answer that we are participating
 	define_packet :participating! do
 		define_unpacker_for 1
 
@@ -119,7 +86,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is sent to accept the invitation to the groupchat
 	define_packet :join do
 		define_unpacker_for 1
 
@@ -132,7 +98,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is sent to every participant in a groupchat to tell them you're leaving
 	define_packet :leave do
 		define_unpacker_for 1 .. 2
 
@@ -149,7 +114,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is used to tell the already present participants about who you invited.
 	define_packet :invited do
 		define_unpacker_for 2
 
@@ -176,7 +140,6 @@ define_extension :groupchat do
 		end
 	end
 
-	# This packet is sent to all participants and is just a message.
 	define_packet :message do
 		define_unpacker_for 2
 
