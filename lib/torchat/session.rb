@@ -166,6 +166,8 @@ class Session
 		end
 
 		on :message do |packet, buddy|
+			next unless buddy.typing? || buddy.thinking?
+
 			buddy.not_typing!
 
 			fire :typing, buddy, :stop
