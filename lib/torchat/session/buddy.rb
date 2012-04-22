@@ -129,6 +129,12 @@ class Buddy
 	def temporary!; @temporary = true;  end
 	def permanent!; @temporary = false; end
 
+	def typing?;     @typing == :start;    end
+	def thinking?;   @typing == :thinking; end
+	def typing!;     @typing = :start;     end
+	def thinking!;   @typing = :thinking;  end
+	def not_typing!; @typing = :stop;      end
+
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?
 
@@ -143,6 +149,10 @@ class Buddy
 
 	def send_message (text)
 		send_packet :message, text
+	end
+
+	def send_typing (mode)
+		send_packet "typing_#{mode}"
 	end
 
 	def online?; connected?; end

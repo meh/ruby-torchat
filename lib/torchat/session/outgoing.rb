@@ -35,11 +35,11 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 		@session.fire :connecting_to, @owner.address, @owner.port
 
-		socksify @owner.address, @owner.port, -> {
+		socksify(@owner.address, @owner.port) {
 			set_comm_inactivity_timeout old
 
 			@owner.connected
-		}, -> exc {
+		}.errback {|exc|
 			Torchat.debug exc, level: 3
 
 			@owner.disconnect

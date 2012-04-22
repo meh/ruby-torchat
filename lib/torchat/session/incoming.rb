@@ -27,12 +27,6 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def receive_line (line)
-		if @session.offline?
-			close_connection_after_writing
-
-			return
-		end
-
 		packet = begin
 			Protocol.unpack(line.chomp, @owner)
 		rescue => e
@@ -48,6 +42,14 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 		if packet.type == :ping
 			Torchat.debug "ping incoming from claimed #{packet.id}", level: 2
+
+			if @session.offline?
+				close_connection_after_writing
+
+				Torchat.debug 'we are offline, kill the connection'
+
+				return
+			end
 
 			if !packet.valid? || packet.id == @session.id || @last_ping && packet.id != @last_ping.id
 				close_connection_after_writing
