@@ -17,32 +17,18 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'ostruct'
+
 class Torchat; class Session
 
 class Event
-	class DSL < BasicObject
-		def initialize (&block)
-			@data = {}
-
-			instance_eval &block
-		end
-
-		def method_missing (id, value)
-			@data[id] = value
-		end
-
-		def to_hash
-			@data
-		end
-	end
-
 	attr_reader :session, :name
 
-	def initialize (session, name, &block)
+	def initialize (session, name, data = nil, &block)
 		@session = session
 		@name    = name
 
-		@data = DSL.new(&block).to_hash
+		@data = OpenStruct.new(data).tap(&block || proc {}).marshal_dump
 	end
 
 	def method_missing (id)

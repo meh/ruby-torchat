@@ -68,11 +68,11 @@ class Session
 				e.buddy.send_packet :add_me
 			end
 
-			buddy.send_packet :status, status
+			e.buddy.send_packet :status, status
 		end
 
 		on :supports do |e|
-			buddy.supports *e.packet.to_a
+			e.buddy.supports *e.packet.to_a
 		end
 
 		on :status do |e|
@@ -80,9 +80,7 @@ class Session
 
 			e.buddy.ready!
 
-			fire :ready do
-				buddy e.buddy
-			end
+			fire :ready, buddy: e.buddy
 		end
 
 		on :add_me do |e|
@@ -91,6 +89,7 @@ class Session
 
 		on :remove_me do |e|
 			buddies.remove e.buddy
+
 			e.buddy.disconnect
 		end
 
@@ -152,28 +151,19 @@ class Session
 		on :typing_start do |e|
 			e.buddy.typing!
 
-			fire :typing do
-				buddy e.buddy
-				mode  :start
-			end
+			fire :typing, buddy: e.buddy, mode: :start
 		end
 
 		on :typing_thinking do |e|
 			e.buddy.thinking!
 
-			fire :typing do
-				buddy e.buddy
-				mode  :thinking
-			end
+			fire :typing, buddy: e.buddy, mode: :thinking
 		end
 
 		on :typing_stop do |e|
 			e.buddy.not_typing!
 
-			fire :typing do
-				buddy e.buddy
-				mode  :stop
-			end
+			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
 		on :message do |e|
@@ -181,10 +171,7 @@ class Session
 
 			e.buddy.not_typing!
 
-			fire :typing do
-				buddy e.buddy
-				mode  :stop
-			end
+			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
 		yield self if block_given?
@@ -281,20 +268,17 @@ class Session
 	end
 
 	def received (packet)
-		fire packet.type do
-			packet packet
-			buddy  packet.from
-		end
+		fire packet.type, packet: packet, buddy: packet.from
 	end
 
-	def fire (name, &block)
+	def fire (name, data = nil, &block)
 		name  = name.downcase.to_sym
-		event = Event.new(self, name, &block)
+		event = Event.new(self, name, data, &block)
 
 		[@before[nil], @before[name], @callbacks[name], @after[name], @after[nil]].each {|callbacks|
 			callbacks.each {|callback|
 				begin
-					block.call event
+					callback.call event
 				rescue => e
 					Torchat.debug e
 				end

@@ -78,8 +78,8 @@ class Buddies < Hash
 		buddy.permanent!
 		buddy.alias = ali
 		
-		self << buddy and session.fire :added do
-			buddy buddy
+		self << buddy and session.fire :added do |n|
+			n.buddy = buddy
 		end
 
 		buddy.connect if session.online?
@@ -103,8 +103,8 @@ class Buddies < Hash
 		buddy.temporary!
 		buddy.alias = ali
 
-		self << buddy and session.fire :added do
-			buddy buddy
+		self << buddy and session.fire :added do |n|
+			n.buddy = buddy
 		end
 
 		buddy.connect if session.online?
@@ -123,8 +123,8 @@ class Buddies < Hash
 
 		buddy.remove!
 
-		session.fire :removal do
-			buddy buddy
+		session.fire :removal do |n|
+			n.buddy = buddy
 		end
 
 		if buddy.permanent?

@@ -162,9 +162,7 @@ class Buddy
 	def failed!
 		@connecting = false
 
-		session.fire :failed_connection do
-			buddy self
-		end
+		session.fire :failed_connection, buddy: self
 	end
 
 	def connecting?; @connecting; end
@@ -198,9 +196,7 @@ class Buddy
 
 		ping! send_packet!(:ping, session.address).cookie
 
-		session.fire :connection do
-			buddy self
-		end
+		session.fire :connection, buddy: self
 	end
 
 	def verified?; @verified; end
@@ -212,9 +208,7 @@ class Buddy
 
 		own! incoming
 
-		session.fire :verification do
-			buddy self
-		end
+		session.fire :verification, buddy: self
 
 		@outgoing.verification_completed
 		@incoming.verification_completed
@@ -240,9 +234,7 @@ class Buddy
 
 		disconnect
 
-		session.fire :disconnection do
-			buddy self
-		end
+		session.fire :disconnection, buddy: self
 	end
 
 	def inspect
