@@ -33,7 +33,10 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 		set_comm_inactivity_timeout new
 
-		@session.fire :connecting_to, @owner.address, @owner.port
+		@session.fire :connecting_to do
+			address @owner.address
+			port    @owner.port
+		end
 
 		socksify(@owner.address, @owner.port) {
 			set_comm_inactivity_timeout old
