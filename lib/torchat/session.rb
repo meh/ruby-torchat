@@ -20,6 +20,7 @@
 require 'eventmachine'
 require 'em-socksify'
 
+require 'torchat/session/event'
 require 'torchat/session/buddies'
 require 'torchat/session/groupchats'
 
@@ -43,81 +44,83 @@ class Session
 		@groupchats = GroupChats.new(self)
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
+		@before    = Hash.new { |h, k| h[k] = [] }
+		@after     = Hash.new { |h, k| h[k] = [] }
 		@timers    = []
 
 		@connection_timeout = 60
 
-		# standard protocol implementation
-		on :unknown do |line, buddy|
-			buddy.send_packet :not_implemented, line.split(' ').first
+		on :unknown do |e|
+			e.buddy.send_packet :not_implemented, e.line.split(' ').first
 		end
 
-		on :verification do |buddy|
+		on :verification do |e|
 			# this actually gets executed only if the buddy doesn't exist
 			# so we can still check if the buddy is permanent below
-			buddies.add_temporary buddy
+			buddies.add_temporary e.buddy
 
-			buddy.send_packet :client,  client
-			buddy.send_packet :version, version
-			buddy.send_packet :supports, Protocol.extensions.map(&:name)
+			e.buddy.send_packet :client,  client
+			e.buddy.send_packet :version, version
+			e.buddy.send_packet :supports, Protocol.extensions.map(&:name)
 
-			buddy.send_packet :profile_name, name        if name
-			buddy.send_packet :profile_text, description if description
+			e.buddy.send_packet :profile_name, name        if name
+			e.buddy.send_packet :profile_text, description if description
 
-			if buddy.permanent?
-				buddy.send_packet :add_me
+			if e.buddy.permanent?
+				e.buddy.send_packet :add_me
 			end
 
-			buddy.send_packet :status, status
+			e.buddy.send_packet :status, status
 		end
 
-		on :supports do |packet, buddy|
-			buddy.supports *packet.to_a
+		on :supports do |e|
+			e.buddy.supports *e.packet.to_a
 		end
 
-		on :status do |packet, buddy|
-			next if buddy.ready?
+		on :status do |e|
+			next if e.buddy.ready?
 
-			buddy.ready!
+			e.buddy.ready!
 
-			fire :ready, buddy
+			fire :ready, buddy: e.buddy
 		end
 
-		on :add_me do |packet, buddy|
-			buddy.permanent!
+		on :add_me do |e|
+			e.buddy.permanent!
 		end
 
-		on :remove_me do |packet, buddy|
-			buddies.remove buddy
-			buddy.disconnect
+		on :remove_me do |e|
+			buddies.remove e.buddy
+
+			e.buddy.disconnect
 		end
 
-		on :client do |packet, buddy|
-			buddy.client.name = packet.to_str
+		on :client do |e|
+			e.buddy.client.name = e.packet.to_str
 		end
 
-		on :version do |packet, buddy|
-			buddy.client.version = packet.to_str
+		on :version do |e|
+			e.buddy.client.version = e.packet.to_str
 		end
 
-		on :status do |packet, buddy|
-			buddy.status = packet.to_sym
+		on :status do |e|
+			e.buddy.status = e.packet.to_sym
 		end
 
-		on :profile_name do |packet, buddy|
-			buddy.name = packet.to_str
+		on :profile_name do |e|
+			e.buddy.name = e.packet.to_str
 		end
 
-		on :profile_text do |packet, buddy|
-			buddy.description = packet.to_str
+		on :profile_text do |e|
+			e.buddy.description = e.packet.to_str
 		end
 
-		on :profile_avatar_alpha do |packet, buddy|
-			buddy.avatar.alpha = packet.data
+		on :profile_avatar_alpha do |e|
+			e.buddy.avatar.alpha = e.packet.data
 		end
 
-		on :profile_avatar do |packet, buddy|
-			buddy.avatar.rgb = packet.data
+		on :profile_avatar do |e|
+			e.buddy.avatar.rgb = e.packet.data
 		end
 
 		set_interval 120 do
@@ -147,30 +150,30 @@ class Session
 		end
 
 		# typing extension support
-		on :typing_start do |packet, buddy|
-			buddy.typing!
+		on :typing_start do |e|
+			e.buddy.typing!
 
-			fire :typing, buddy, :start
+			fire :typing, buddy: e.buddy, mode: :start
 		end
 
-		on :typing_thinking do |packet, buddy|
-			buddy.thinking!
+		on :typing_thinking do |e|
+			e.buddy.thinking!
 
-			fire :typing, buddy, :thinking
+			fire :typing, buddy: e.buddy, mode: :thinking
 		end
 
-		on :typing_stop do |packet, buddy|
-			buddy.not_typing!
+		on :typing_stop do |e|
+			e.buddy.not_typing!
 
-			fire :typing, buddy, :stop
+			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
-		on :message do |packet, buddy|
-			next unless buddy.typing? || buddy.thinking?
+		on :message do |e|
+			next unless e.buddy.typing? || e.buddy.thinking?
 
-			buddy.not_typing!
+			e.buddy.not_typing!
 
-			fire :typing, buddy, :stop
+			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
 		# groupchat implementation
@@ -191,14 +194,16 @@ class Session
 				packet.each {|p|
 					buddy = buddies.add_temporary(p)
 
-					buddy.on :verification do
+					buddy.on :verification do |e|
 						buddy.send_packet 
+
+						e.remove!
 					end
 
 					groupchats[packet.id].participants.push buddy
 				}
 
-				fire :joined, groupchats[packet.id]
+				fire :joined, chat: groupchats[packet.id]
 			end
 		end
 
@@ -299,17 +304,37 @@ class Session
 
 	alias when on
 
-	def received (packet)
-		fire packet.type, packet, packet.from
+	def before (what = nil, &block)
+		@before[what] << block
 	end
 
-	def fire (name, *args, &block)
-		@callbacks[name.to_sym.downcase].each {|block|
-			begin
-				block.call *args, &block
-			rescue => e
-				Torchat.debug e
-			end
+	def after (what = nil, &block)
+		@after[what] << block
+	end
+
+	def received (packet)
+		fire packet.type, packet: packet, buddy: packet.from
+	end
+
+	def fire (name, data = nil, &block)
+		name  = name.downcase.to_sym
+		event = Event.new(self, name, data, &block)
+
+		[@before[nil], @before[name], @callbacks[name], @after[name], @after[nil]].each {|callbacks|
+			callbacks.each {|callback|
+				begin
+					callback.call event
+				rescue => e
+					Torchat.debug e
+				end
+
+				if event.remove?
+					callbacks.delete(callback)
+					event.removed!
+				end
+				
+				return if event.stopped?
+			}
 		}
 	end
 

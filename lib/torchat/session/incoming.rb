@@ -31,7 +31,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			Protocol.unpack(line.chomp, @owner)
 		rescue => e
 			if e.is_a?(ArgumentError) && e.message.end_with?('packet unknown')
-				@session.fire :unknown, line, @owner if @owner
+				@session.fire :unknown, line: line, buddy: @owner
 			else
 				Torchat.debug line.inspect
 				Torchat.debug e
