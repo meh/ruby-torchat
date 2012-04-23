@@ -17,7 +17,7 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-class Torchat
+class Torchat; class Session
 
 class Event
 	class DSL < BasicObject
@@ -57,4 +57,4 @@ class Event
 	def stopped?; @stop;        end
 end
 
-end
+end; end
