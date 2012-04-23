@@ -22,12 +22,12 @@ require 'em-socksify'
 
 require 'torchat/session/event'
 require 'torchat/session/buddies'
-require 'torchat/session/groupchats'
+require 'torchat/session/group_chats'
 
 class Torchat
 
 class Session
-	attr_reader   :config, :id, :name, :description, :status, :buddies, :groupchats
+	attr_reader   :config, :id, :name, :description, :status, :buddies, :group_chats
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -40,8 +40,8 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
-		@buddies    = Buddies.new(self)
-		@groupchats = GroupChats.new(self)
+		@buddies     = Buddies.new(self)
+		@group_chats = GroupChats.new(self)
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@before    = Hash.new { |h, k| h[k] = [] }
@@ -176,44 +176,44 @@ class Session
 			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
-		# groupchat implementation
-		on :groupchat_invite do |e|
-			return if groupchats.has_key? e.packet.id
+		# group_chat implementation
+		on :group_chat_invite do |e|
+			return if group_chats.has_key? e.packet.id
 
-			groupchat = groupchats.create(e.packet.id)
-			groupchat.invited!
-			groupchat.participants.push e.buddy
+			group_chat = group_chats.create(e.packet.id)
+			group_chat.invited!
+			group_chat.participants.push e.buddy
 		end
 
-		on :groupchat_participants? do |e|
-			if groupchat = groupchats[e.packet.id]
-				e.buddy.send_packet [:groupchat, :participants], e.packet.id, groupchat.participants
+		on :group_chat_participants? do |e|
+			if group_chat = group_chats[e.packet.id]
+				e.buddy.send_packet [:group_chat, :participants], e.packet.id, group_chat.participants
 			else
-				e.buddy.send_packet [:groupchat, :not_participating!], e.packet.id
+				e.buddy.send_packet [:group_chat, :not_participating!], e.packet.id
 			end
 		end
 
-		on :groupchat_participants do |e|
-			return unless groupchat = groupchats[e.packet.id]
+		on :group_chat_participants do |e|
+			return unless group_chat = group_chats[e.packet.id]
 
 			if e.packet.any? { |p| buddies.has_key?(p) && buddies[p].blocked? }
-				groupchat.leave
+				group_chat.leave
 			else
-				e.buddy.send_packet [:groupchat, :join], e.packet.id
+				e.buddy.send_packet [:group_chat, :join], e.packet.id
 
 				e.packet.each {|p|
 					buddy = buddies.add_temporary(p)
 
 					buddy.on :verification do |e|
-						buddy.send_packet [:groupchat, :participating?], packet.id
+						buddy.send_packet [:group_chat, :participating?], packet.id
 
-						buddy.on :groupchat_participating! do |e|
-							groupchats[e.packet.id].participants.push e.buddy
+						buddy.on :group_chat_participating! do |e|
+							group_chats[e.packet.id].participants.push e.buddy
 
 							e.remove!
 						end
 
-						buddy.on :groupchat_not_participating! do |e|
+						buddy.on :group_chat_not_participating! do |e|
 							e.remove!
 						end
 
@@ -221,19 +221,19 @@ class Session
 					end
 				}
 
-				fire :joined, chat: groupchats[packet.id]
+				fire :joined, chat: group_chats[packet.id]
 			end
 		end
 
-		on :groupchat_invited do |packet, buddy|
-			return unless groupchats.has_key? packet.id
+		on :group_chat_invited do |packet, buddy|
+			return unless group_chats.has_key? packet.id
 
-			groupchats[packet.id].add(packet.to_s)
+			group_chats[packet.id].add(packet.to_s)
 		end
 
 		on :disconnection do |buddy|
-			groupchats.each_value {|groupchat|
-				groupchat.delete(buddy)
+			group_chats.each_value {|group_chat|
+				group_chat.delete(buddy)
 			}
 		end
 

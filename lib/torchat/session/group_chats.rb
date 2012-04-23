@@ -17,7 +17,7 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/session/groupchat'
+require 'torchat/session/group_chat'
 
 class Torchat; class Session
 

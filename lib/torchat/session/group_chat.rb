@@ -45,7 +45,7 @@ class GroupChat
 			buddy.send_packet [:groupchat, :leave], id
 		}
 
-		session.groupchats.left id
+		session.group_chats.left id
 	end
 
 	def send_message (message)
