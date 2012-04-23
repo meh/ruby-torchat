@@ -84,10 +84,8 @@ class Buddy
 	end
 
 	def on (what, &block)
-		session.on what do |*args|
-			if (args.first.is_a?(Buddy) && args.first == self) || (args.first.is_a?(Protocol::Packet) && args.first.from == self)
-				block.call(*args)
-			end
+		session.on what do |e|
+			block.call e if e.buddy == self
 		end
 	end
 
@@ -129,6 +127,12 @@ class Buddy
 	def temporary!; @temporary = true;  end
 	def permanent!; @temporary = false; end
 
+	def typing?;     @typing == :start;    end
+	def thinking?;   @typing == :thinking; end
+	def typing!;     @typing = :start;     end
+	def thinking!;   @typing = :thinking;  end
+	def not_typing!; @typing = :stop;      end
+
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?
 
@@ -153,6 +157,12 @@ class Buddy
 		session.file_transfers.send_blob(self, path)
 	end
 
+	def send_typing (mode)
+		return unless supports? :typing
+
+		send_packet "typing_#{mode}"
+	end
+
 	def online?; connected?; end
 	def offline?; !online?;  end
 
@@ -162,7 +172,7 @@ class Buddy
 	def failed!
 		@connecting = false
 
-		session.fire :failed_connection, self
+		session.fire :failed_connection, buddy: self
 	end
 
 	def connecting?; @connecting; end
@@ -196,7 +206,7 @@ class Buddy
 
 		ping! send_packet!(:ping, session.address).cookie
 
-		session.fire :connection, self
+		session.fire :connection, buddy: self
 	end
 
 	def verified?; @verified; end
@@ -208,9 +218,10 @@ class Buddy
 
 		own! incoming
 
-		@outgoing.verification_completed
+		session.fire :verification, buddy: self
 
-		session.fire :verification, self
+		@outgoing.verification_completed
+		@incoming.verification_completed
 	end
 
 	def disconnect
@@ -233,7 +244,7 @@ class Buddy
 
 		disconnect
 
-		session.fire :disconnection, self
+		session.fire :disconnection, buddy: self
 	end
 
 	def inspect

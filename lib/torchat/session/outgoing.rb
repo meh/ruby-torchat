@@ -33,13 +33,13 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 
 		set_comm_inactivity_timeout new
 
-		@session.fire :connecting_to, @owner.address, @owner.port
+		@session.fire :connecting_to, address: @owner.address, port: @owner.port
 
-		socksify @owner.address, @owner.port, -> {
+		socksify(@owner.address, @owner.port).callback {
 			set_comm_inactivity_timeout old
 
 			@owner.connected
-		}, -> exc {
+		}.errback {|exc|
 			Torchat.debug exc, level: 3
 
 			@owner.disconnect
@@ -47,7 +47,10 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 	end
 
 	def verification_completed
-		@delayed.each { |p| send_packet! *p }
+		@delayed.each {|packet|
+			send_packet! packet
+		}
+
 		@delayed = nil
 	end
 
