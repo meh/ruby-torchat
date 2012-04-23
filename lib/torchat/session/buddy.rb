@@ -150,6 +150,8 @@ class Buddy
 	end
 
 	def send_typing (mode)
+		return unless supports? :typing
+
 		send_packet "typing_#{mode}"
 	end
 
