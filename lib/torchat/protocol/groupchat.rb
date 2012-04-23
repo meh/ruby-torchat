@@ -48,7 +48,7 @@ define_extension :groupchat do
 		def initialize (id, *participants)
 			@id = id
 
-			@internal = participants.flatten.uniq
+			@internal = participants.flatten.compact.uniq
 		end
 
 		def method_missing (id, *args, &block)

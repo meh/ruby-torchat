@@ -1,28 +1,31 @@
 Groupchat extension lifecycle and packet description
 ====================================================
 The person that starts the groupchat starts it by inviting the first person
-to it, the invite packet has a cookie inside that will also be the id of the
-groupchat throughout all its lifecycle.
+to it, the *invite* packet has a cookie inside that will also be the id of the
+groupchat throughout its lifecycle.
 
-After the invite packet a participants packet is sent to the invited person,
+After the *invite* packet a *participants* packet is sent to the invited person,
 this packet has inside the list of ids of the current groupchat.
 
-After receiving the participants packet the invited starts connections to all the
+After receiving the *participants* packet the invited starts connections to all the
 participants and sends them a packet asking them if they're really participating
 in the groupchat. The contacts that aren't in his buddy list are added as temporary
-buddies. If any of the participants are in his blocked list, a leave packet will be
-sent, refusing to join the groupchat, otherwise a join packet will be sent.
+buddies. If any of the participants are in his blocked list, a *leave* packet will be
+sent, refusing to join the groupchat, otherwise a *join* packet will be sent.
 
-After the participants packet an invited packet is sent to the already present participants,
+After the *participants* packet an *invited* packet is sent to the already present participants,
 in this way they'll know who invited that person and that that person is going to join the
 groupchat.
+
+If wanted you can ask the current list of participants with the *participants?* packet,
+it will be answered with a *participants* or *not_participating!* packet.
 
 The messaging in the groupchat is simply sent to every other participant from the sender
 of the message.
 
-To exit the groupchat a leave packet is sent to every participant present in the groupchat.
+To exit the groupchat a *leave* packet is sent to every participant present in the groupchat.
 
-On disconnection of any of the participants it will obviously mean leaving the groupchat.
+When a participant disconnects it's seen as leaving the groupchat.
 
 Packets
 -------

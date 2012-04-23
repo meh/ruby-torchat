@@ -177,30 +177,48 @@ class Session
 		end
 
 		# groupchat implementation
-		on :groupchat_invite do |packet, buddy|
-			return if groupchats.has_key? packet.id
+		on :groupchat_invite do |e|
+			return if groupchats.has_key? e.packet.id
 
-			groupchats.create(packet.id).invited!
+			groupchat = groupchats.create(e.packet.id)
+			groupchat.invited!
+			groupchat.participants.push e.buddy
 		end
 
-		on :groupchat_participants do |packet, buddy|
-			return unless groupchats.has_key? packet.id
-
-			if packet.any? { |p| buddies[p] && buddies[p].blocked? }
-				buddy.send_packet [:groupchat, :leave], packet.id
+		on :groupchat_participants? do |e|
+			if groupchat = groupchats[e.packet.id]
+				e.buddy.send_packet [:groupchat, :participants], e.packet.id, groupchat.participants
 			else
-				buddy.send_packet [:groupchat, :join], packet.id
+				e.buddy.send_packet [:groupchat, :not_participating!], e.packet.id
+			end
+		end
 
-				packet.each {|p|
+		on :groupchat_participants do |e|
+			return unless groupchat = groupchats[e.packet.id]
+
+			if e.packet.any? { |p| buddies.has_key?(p) && buddies[p].blocked? }
+				groupchat.leave
+			else
+				e.buddy.send_packet [:groupchat, :join], e.packet.id
+
+				e.packet.each {|p|
 					buddy = buddies.add_temporary(p)
 
 					buddy.on :verification do |e|
-						buddy.send_packet 
+						buddy.send_packet [:groupchat, :participating?], packet.id
+
+						buddy.on :groupchat_participating! do |e|
+							groupchats[e.packet.id].participants.push e.buddy
+
+							e.remove!
+						end
+
+						buddy.on :groupchat_not_participating! do |e|
+							e.remove!
+						end
 
 						e.remove!
 					end
-
-					groupchats[packet.id].participants.push buddy
 				}
 
 				fire :joined, chat: groupchats[packet.id]

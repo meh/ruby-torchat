@@ -45,6 +45,12 @@ class GroupChats < Hash
 	def create (id = Torchat.new_cookie)
 		self[id] = GroupChat.new(session, id)
 	end
+
+	def left (id)
+		delete self[id].id
+	end
+
+	private :delete
 end
 
 end; end
