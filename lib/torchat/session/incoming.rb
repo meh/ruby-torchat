@@ -26,6 +26,8 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		@delayed = []
 	end
 
+	# FIXME: possible DoS with caching packets before the handshake is completed,
+	#        either limit the max number of delayed packets or dunno.
 	def receive_line (line)
 		packet = begin
 			Protocol.unpack(line.chomp, @owner)
