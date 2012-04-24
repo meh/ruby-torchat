@@ -21,18 +21,17 @@ class Torchat; module Protocol
 
 define_extension :groupchat do
 	define_packet :invite do
-		define_unpacker_for 1
+		define_unpacker_for 1 .. -1
 
-		def initialize (id = nil)
-			@internal = id || Torchat.new_cookie
-		end
+		attr_reader :id, :modes
 
-		def id
-			@internal
+		def initialize (id = nil, *modes)
+			@id    = id || Torchat.new_cookie
+			@modes = modes.flatten.compact.uniq.map(&:to_sym)
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{@modes.join ' '}" unless @modes.empty?}>"
 		end
 	end
 
