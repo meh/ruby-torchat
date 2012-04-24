@@ -2,7 +2,8 @@ Groupchat extension lifecycle and packet description
 ====================================================
 The person that starts the groupchat starts it by inviting the first person
 to it, the *invite* packet has a cookie inside that will also be the id of the
-groupchat throughout its lifecycle.
+groupchat throughout its lifecycle. Afterwards every participant can invite any
+others.
 
 After the *invite* packet a *participants* packet is sent to the invited person,
 this packet has inside the list of ids of the current groupchat.
