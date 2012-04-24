@@ -2,8 +2,7 @@ Groupchat extension lifecycle and packet description
 ====================================================
 The person that starts the groupchat starts it by inviting the first person
 to it, the *invite* packet has a cookie inside that will also be the id of the
-groupchat throughout its lifecycle. Afterwards every participant can invite any
-others.
+groupchat throughout its lifecycle, it also contains a list of modes for the groupchat.
 
 After the *invite* packet a *participants* packet is sent to the invited person,
 this packet has inside the list of ids of the current groupchat.
@@ -37,10 +36,18 @@ from the buddy.
 
 ### Groupchat Invite
 
-This packet is used to invite someone to a groupchat, it contains the id of the groupchat.
+This packet is used to invite someone to a groupchat, it contains the id of the groupchat
+and a list of modes.
+
+The modes will be useful in implementing extensions to the groupchat protocol, for example in
+the implementation of redundancy and permanent groupchats.
 
 ```
 > groupchat_invite 6f012391-883d-4f4f-8d54-52c4227b3ac9
+```
+
+```
+> groupchat_invite 6f012391-883d-4f4f-8d54-52c4227b3ac9 noredundancy
 ```
 
 ### Groupchat Participants?
