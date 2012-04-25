@@ -137,6 +137,10 @@ class Buddies < Hash
 			buddy.disconnect
 		end
 
+		if buddy.blocked?
+			add_temporary(buddy).block!
+		end
+
 		buddy
 	end
 end
