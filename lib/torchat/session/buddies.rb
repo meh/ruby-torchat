@@ -103,7 +103,9 @@ class Buddies < Hash
 		buddy.temporary!
 		buddy.alias = ali
 
-		self << buddy and session.fire :added do |n|
+		self << buddy
+		
+		session.fire :added do |n|
 			n.buddy = buddy
 		end
 
@@ -138,7 +140,7 @@ class Buddies < Hash
 		end
 
 		if buddy.blocked?
-			add_temporary(buddy.id).block!
+			add_temporary(buddy.id).blockFix removal of blocked buddies!
 		end
 
 		buddy
