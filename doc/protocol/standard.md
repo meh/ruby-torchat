@@ -39,7 +39,7 @@ packet **must** end with a `\n`.
 
 Every packet starts with the name of the packet in `this_style`, and if the packet has data
 the name is followed by a space and the torchat-encoded string. The packet name can only contain
-`[a-z_]`.
+`[a-z_]` and may end with `[?!]`.
 
 The torchat encoding is a simple find and replace of every `\\` into `\\/` and `\n` into `\\n`.
 
