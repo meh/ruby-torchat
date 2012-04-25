@@ -18,7 +18,6 @@
 #++
 
 require 'eventmachine'
-require 'em-socksify'
 
 require 'torchat/session/buddies'
 require 'torchat/session/event'
