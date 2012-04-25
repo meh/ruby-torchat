@@ -103,7 +103,9 @@ class Buddies < Hash
 		buddy.temporary!
 		buddy.alias = ali
 
-		self << buddy and session.fire :added do |n|
+		self << buddy
+		
+		session.fire :added do |n|
 			n.buddy = buddy
 		end
 
@@ -130,7 +132,7 @@ class Buddies < Hash
 		if buddy.permanent? && buddy.online?
 			buddy.send_packet :remove_me
 
-			session.set_timeout 5 do
+			session.set_timeout 10 do
 				buddy.disconnect
 			end
 		else
@@ -138,7 +140,7 @@ class Buddies < Hash
 		end
 
 		if buddy.blocked?
-			add_temporary(buddy).block!
+			add_temporary(buddy.id).blockFix removal of blocked buddies!
 		end
 
 		buddy
