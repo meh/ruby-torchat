@@ -119,8 +119,18 @@ class Buddy
 
 	def blocked?; @blocked;         end
 	def allowed?; !@blocked;        end
-	def block!;   @blocked = true;  end
-	def allow!;   @blocked = false; end
+
+	def block!
+		@blocked = true
+
+		disconnect
+	end
+
+	def allow!
+		@blocked = false
+
+		connect
+	end
 
 	def temporary?; @temporary;         end
 	def permanent?; !@temporary;        end
@@ -150,6 +160,8 @@ class Buddy
 	end
 
 	def send_typing (mode)
+		return unless supports? :typing
+
 		send_packet "typing_#{mode}"
 	end
 
@@ -168,7 +180,7 @@ class Buddy
 	def connecting?; @connecting; end
 
 	def connect
-		return if connecting? || connected?
+		return if connecting? || connected? || blocked?
 
 		@connecting  = true
 		@tries      += 1

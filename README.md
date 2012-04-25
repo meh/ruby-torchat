@@ -25,9 +25,12 @@ Example of tor configuration generation:
 ```
 $ torchatd -g -c etc/torchat.yml
 SocksPort 11108
+
 HiddenServiceDir hidden_service
 HiddenServicePort 11009 127.0.0.1:11008
+
 DataDirectory tor_data
+
 AvoidDiskWrites 1
 LongLivedPorts 11009
 FetchDirInfoEarly 1
