@@ -198,6 +198,12 @@ class Torchatd
 		when :message
 			profile.send_message_to *rest.split(' ', 2)
 
+		when :block
+			profile.buddies[rest].block!
+
+		when :allow
+			profile.buddies[rest].allow!
+
 		else
 			connection.send_response "UNIMPLEMENTED #{command}"
 		end
