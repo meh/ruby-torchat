@@ -17,6 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'eventmachine'
+
 require 'torchat/session/incoming'
 require 'torchat/session/outgoing'
 

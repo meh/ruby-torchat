@@ -17,6 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'em-socksify'
+
 class Torchat; class Session
 
 class Outgoing < EventMachine::Protocols::LineAndTextProtocol

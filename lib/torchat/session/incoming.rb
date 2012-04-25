@@ -26,8 +26,6 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		@delayed = []
 	end
 
-	# FIXME: possible DoS with caching packets before the handshake is completed,
-	#        either limit the max number of delayed packets or dunno.
 	def receive_line (line)
 		packet = begin
 			Protocol.unpack(line.chomp, @owner)
@@ -104,8 +102,6 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 				end
 			end
 		elsif packet.type == :pong
-			Torchat.debug "pong came with #{packet.cookie}", level: 2
-
 			unless buddy = (@session.buddies[@last_ping.id] || @temp_buddy) || !buddy.pinged?
 				close_connection_after_writing
 
@@ -129,7 +125,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			if packet.cookie != buddy.pinged?
 				close_connection_after_writing
 
-				Torchat.debug "#{packet.from.id} pong with wrong cookie"
+				Torchat.debug "#{packet.from.id} pong with wrong cookie, got #{packet.cookie.inspect} expected #{buddy.pinged?.inspect}"
 
 				return
 			end
@@ -142,7 +138,13 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		else
 			unless @owner
 				if @last_ping
-					@delayed << packet
+					if @delayed.length > 23
+						close_connection_after_writing
+
+						Torchat.debug 'too many cached packets'
+					else
+						@delayed << packet
+					end
 				else
 					close_connection_after_writing
 
