@@ -104,8 +104,6 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 				end
 			end
 		elsif packet.type == :pong
-			Torchat.debug "pong came with #{packet.cookie}", level: 2
-
 			unless buddy = (@session.buddies[@last_ping.id] || @temp_buddy) || !buddy.pinged?
 				close_connection_after_writing
 
