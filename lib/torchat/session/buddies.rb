@@ -130,7 +130,7 @@ class Buddies < Hash
 		if buddy.permanent? && buddy.online?
 			buddy.send_packet :remove_me
 
-			session.set_timeout 5 do
+			session.set_timeout 10 do
 				buddy.disconnect
 			end
 		else
