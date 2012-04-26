@@ -64,12 +64,12 @@ class FileTransfers <  Hash
 		}
 	end
 
-	def abort (id)
+	def stop (id)
 		unless file_transfer = self[id]
 			raise ArgumentError, 'unexistent file transfer'
 		end
 
-		delete(file_transfer.abort.id)
+		delete(file_transfer.stop.id)
 	end
 
 private

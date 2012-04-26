@@ -158,6 +158,18 @@ class Session
 			end
 		end
 
+		on :file_stop_sending do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
+
+			file_transfer.stop(true)
+		end
+
+		on :file_stop_receiving do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
+
+			file_transfer.stop(true)
+		end
+
 		set_interval 120 do
 			next unless online?
 
