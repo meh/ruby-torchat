@@ -131,7 +131,7 @@ class FileTransfer
 	end
 
 	def inspect
-		"#<Torchat::FileTransfer(#{id}): #{name} #{tell}/#{size} (#{completion}%)>"
+		"#<Torchat::FileTransfer(#{id}): #{name} #{tell}/#{size} (#{'%.2f' % completion}%)>"
 	end
 end
 
