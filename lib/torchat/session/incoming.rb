@@ -125,7 +125,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			if packet.cookie != buddy.pinged?
 				close_connection_after_writing
 
-				Torchat.debug "#{packet.from.id} pong with wrong cookie, got #{packet.cookie.inspect} expected #{buddy.pinged?.inspect}"
+				Torchat.debug "#{"#{packet.from.id} sent " if packet.from}pong with wrong cookie, got #{packet.cookie.inspect} expected #{buddy.pinged?.inspect}"
 
 				return
 			end
