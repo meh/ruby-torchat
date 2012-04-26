@@ -20,11 +20,12 @@
 class Torchat; class Session
 
 class GroupChat
-	attr_reader :session, :id, :participants
+	attr_reader :session, :id, :modes, :participants
 
-	def initialize (session, id)
+	def initialize (session, id, *modes)
 		@session = session
 		@id      = id
+		@modes   = modes.flatten.uniq.compact.map(&:to_sym)
 
 		@participants = []
 	end
