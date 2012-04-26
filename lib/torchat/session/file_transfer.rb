@@ -35,11 +35,8 @@ class FileTransfer
 	def initialize (file_transfers = nil, name, size)
 		@file_transfers = file_transfers
 		@id             = id || Torchat.new_cookie
-		@name           = name
-		@size           = size
+		@name           = name @size           = size
 		@block_size     = 4096
-
-		@cache = []
 	end
 
 	def outgoing?
@@ -69,6 +66,24 @@ class FileTransfer
 		@cache = nil
 	end
 
+	def tell
+		if @input
+			@input.tell
+		elsif @output
+			@output.size
+		elsif @cache
+			block = @cache.max { |a, b| a.offset <=> b.offset }
+
+			block.offset + block.size
+		else
+			0
+		end
+	end
+
+	def completion
+		tell.to_f / size * 100
+	end
+
 	def finished?
 		io.size >= size
 	end
@@ -81,7 +96,7 @@ class FileTransfer
 				output.seek(offset)
 				output.write(data)
 			else
-				@cache.push block
+				(@cache ||= []) << block
 			end
 		}
 	end

@@ -131,17 +131,29 @@ class Session
 
 			if file_transfer.add_block(packet.offset, packet.data, packet.md5).valid?
 				buddy.send_packet :filedata_ok, packet.id, packet.offset
+
+				fire :file_transfer_activity, file_transfer
 			else
 				buddy.send_packet :filedata_error, packet.id, packet.offset
 			end
 		end
 
 		on :filedata_ok do |packet, buddy|
+			next unless file_transfer = file_transfers[packet.id]
 
+			if block = file_transfer.next_block
+				buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+
+				fire :file_transfer_activity, file_transfer
+			end
 		end
 
 		on :filedata_error do |packet, buddy|
+			next unless file_transfer = file_transfers[packet.id]
 
+			if block = file_transfer.last_block
+				buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+			end
 		end
 
 		set_interval 120 do

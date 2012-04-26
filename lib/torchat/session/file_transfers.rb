@@ -46,19 +46,27 @@ class FileTransfers <  Hash
 		end
 
 		FileTransfer.new(self, File.basename(path), File.size(path)).tap {|ft|
-			ft.to           = buddy
-			ft.blocks.input = File.open(path)
+			ft.to    = buddy
+			ft.input = File.open(path)
 
 			self[ft.id] = ft
+
+			ft.next_block.tap {|block|
+				buddy.send_packet :filedata, ft.id, block.offset, block.data, block.md5
+			}
 		}
 	end
 
 	def send_blob (buddy, data, name = Torchat.new_cookie)
 		self[id] = FileTransfer.new(self, name, data.size).tap {|ft|
-			ft.to           = buddy
-			ft.blocks.input = StringIO.new(data)
+			ft.to    = buddy
+			ft.input = StringIO.new(data)
 
 			self[ft.id] = ft
+
+			ft.next_block.tap {|block|
+				buddy.send_packet :filedata, ft.id, block.offset, block.data, block.md5
+			}
 		}
 	end
 
