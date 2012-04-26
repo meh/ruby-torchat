@@ -17,6 +17,8 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'stringio'
+
 require 'torchat/session/file_transfer'
 
 class Torchat; class Session
@@ -28,18 +30,36 @@ class FileTransfers <  Hash
 		@session = session
 	end
 
-	def receive_file (id, name, size, sender = nil)
+	def receive (id, name, size, sender = nil)
 		if has_key? id
 			raise ArgumentError, 'file transfer with same id already exists'
 		end
+
+		self[id] = FileTransfer.new(id, name, size).tap {|ft|
+			ft.from = sender
+		}
 	end
 
 	def send_file (buddy, path)
+		unless File.readable?(path)
+			raise ArgumentError, "#{path} is unreadable"
+		end
 
+		FileTransfer.new(self, File.basename(path), File.size(path)).tap {|ft|
+			ft.to           = buddy
+			ft.blocks.input = File.open(path)
+
+			self[ft.id] = ft
+		}
 	end
 
-	def send_blob (buddy, data)
+	def send_blob (buddy, data, name = Torchat.new_cookie)
+		self[id] = FileTransfer.new(self, name, data.size).tap {|ft|
+			ft.to           = buddy
+			ft.blocks.input = StringIO.new(data)
 
+			self[ft.id] = ft
+		}
 	end
 
 	def abort (id)
@@ -47,17 +67,7 @@ class FileTransfers <  Hash
 			raise ArgumentError, 'unexistent file transfer'
 		end
 
-		unless buddy = file_transfer.from || file_transfer.to
-			raise ArgumentError, 'the file transfer is unstoppable, call Denzel Washington'
-		end
-
-		if file_transfer.from
-			buddy.send_packet :file_stop_sending, id
-		else
-			buddy.send_packet :file_stop_receiving, id
-		end
-
-		delete(id)
+		delete(file_transfer.abort.id)
 	end
 end
 

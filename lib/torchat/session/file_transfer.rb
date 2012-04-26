@@ -20,50 +20,96 @@
 require 'digest/md5'
 require 'forwardable'
 
-require 'torchat/session/file_transfer/blocks'
+require 'torchat/session/file_transfer/block'
 
 class Torchat
 
 class FileTransfer
 	extend Forwardable
 
-	attr_reader   :id, :name, :size, :blocks
-	attr_accessor :from, :to
+	attr_reader   :file_transfers, :id, :name, :size, :output, :input
+	attr_accessor :from, :to, :block_size
 
 	alias length size
 
-	def initialize (id = nil, name, size)
-		@id   = id || Torchat.new_cookie
-		@name = name
-		@size = size
+	def initialize (file_transfers = nil, name, size)
+		@file_transfers = file_transfers
+		@id             = id || Torchat.new_cookie
+		@name           = name
+		@size           = size
+		@block_size     = 4096
 
-		@blocks = Blocks.new(self)
+		@cache = []
+	end
+
+	def outgoing?
+		!!to
+	end
+
+	def incoming?
+		!!from
+	end
+
+	def input= (io)
+		raise ArgumentError, 'you cannot change input' if @input && @input != io
+
+		@input = io
+	end
+
+	def output= (io)
+		raise ArgumentError, 'you cannot change output' if @output && @output != io
+
+		@output = io
+
+		@cache.each {|block|
+			output.seek(block.offset)
+			output.write(block.data)
+		}
+
+		@cache = nil
 	end
 
 	def finished?
-		return false if @blocks.has_holes?
-
-		@blocks.last.offset + @blocks.last.size >= size
+		io.size >= size
 	end
 
-	def valid?
-		@blocks.all?(&:valid?)
+	def add_block (offset, data, md5 = nil)
+		Block.new(self, offset, data, md5).tap {|block|
+			raise ArgumentError, 'the data is invalid' unless block.valid?
+
+			if output
+				output.seek(offset)
+				output.write(data)
+			else
+				@cache.push block
+			end
+		}
 	end
 
-	def add_block (*args)
-		@blocks.add(*args)
+	def next_block
+		raise 'there is no input' unless input
+
+		@last = Block.new(self, input.tell, input.read(block_size))
 	end
 
-	def to_file
-		raise ArgymentError, 'the transfer is not finished' unless finished?
+	def last_block
+		raise 'there is no input' unless input
 
-		@blocks.to_file
+		@last = Block.new(self, input.tell, input.read(block_size))
 	end
 
-	def to_str
-		raise ArgymentError, 'the transfer is not finished' unless finished?
+	def abort
+		if from
+			from.send_packet :file_stop_sending, id
+		elsif to
+			to.send_packet :file_stop_receiving, id
+		else
+			raise ArgumentError, 'the file transfer is unstoppable, call Denzel Washington'
+		end
 
-		@blocks.to_str
+		file_transfers.delete(id) if file_transfers
+
+		self
 	end
 end
 
