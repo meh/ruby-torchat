@@ -122,37 +122,37 @@ class Session
 			e.buddy.avatar.rgb = e.packet.data
 		end
 
-		on :filename do |packet, buddy|
-			file_transfers.receive_file(packet.id, packet.name, packet.size, buddy)
+		on :filename do |e|
+			file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
 		end
 
-		on :filedata do |packet, buddy|
-			next unless file_transfer = file_transfers[packet.id]
+		on :filedata do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
 
-			if file_transfer.add_block(packet.offset, packet.data, packet.md5).valid?
-				buddy.send_packet :filedata_ok, packet.id, packet.offset
+			if file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
+				e.buddy.send_packet :filedata_ok, e.packet.id, e.packet.offset
 
-				fire :file_transfer_activity, file_transfer
+				fire :file_transfer_activity, file_transfer: file_transfer
 			else
-				buddy.send_packet :filedata_error, packet.id, packet.offset
+				e.buddy.send_packet :filedata_error, e.packet.id, e.packet.offset
 			end
 		end
 
-		on :filedata_ok do |packet, buddy|
-			next unless file_transfer = file_transfers[packet.id]
+		on :filedata_ok do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
 
 			if block = file_transfer.next_block
-				buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
 
-				fire :file_transfer_activity, file_transfer
+				fire :file_transfer_activity, file_transfer: file_transfer
 			end
 		end
 
-		on :filedata_error do |packet, buddy|
-			next unless file_transfer = file_transfers[packet.id]
+		on :filedata_error do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
 
 			if block = file_transfer.last_block
-				buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
 			end
 		end
 

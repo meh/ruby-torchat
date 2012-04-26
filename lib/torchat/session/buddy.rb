@@ -165,8 +165,8 @@ class Buddy
 		session.file_transfers.send_file(self, path)
 	end
 
-	def send_blob (path)
-		session.file_transfers.send_blob(self, path)
+	def send_blob (data)
+		session.file_transfers.send_blob(self, data)
 	end
 
 	def send_typing (mode)

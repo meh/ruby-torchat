@@ -350,7 +350,7 @@ EM.run {
 				d.connected e.buddy
 			end
 
-			s.when :removal do |e|
+			s.on :removal do |e|
 				d.removed e.buddy
 			end
 

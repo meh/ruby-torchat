@@ -49,11 +49,7 @@ class FileTransfers <  Hash
 			ft.to    = buddy
 			ft.input = File.open(path)
 
-			self[ft.id] = ft
-
-			ft.next_block.tap {|block|
-				buddy.send_packet :filedata, ft.id, block.offset, block.data, block.md5
-			}
+			start_sending(self[ft.id] = ft)
 		}
 	end
 
@@ -62,11 +58,7 @@ class FileTransfers <  Hash
 			ft.to    = buddy
 			ft.input = StringIO.new(data)
 
-			self[ft.id] = ft
-
-			ft.next_block.tap {|block|
-				buddy.send_packet :filedata, ft.id, block.offset, block.data, block.md5
-			}
+			start_sending(self[ft.id] = ft)
 		}
 	end
 
@@ -76,6 +68,15 @@ class FileTransfers <  Hash
 		end
 
 		delete(file_transfer.abort.id)
+	end
+
+private
+	def start_sending (file_transfer)
+		file_transfer.to.send_packet :filename, file_transfer.name, file_transfer.size, file_transfer.block_size, file_transfer.id
+
+		file_transfer.next_block.tap {|block|
+			file_transfer.to.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+		}
 	end
 end
 

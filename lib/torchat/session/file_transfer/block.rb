@@ -22,7 +22,7 @@ require 'digest/md5'
 class Torchat; class FileTransfer
 
 class Block
-	attr_reader :owner, :data, :md5
+	attr_reader :owner, :offset, :data, :md5
 
 	def initialize (owner, offset, data, md5 = nil)
 		@owner  = owner

@@ -31,7 +31,11 @@ class Event
 		@data = OpenStruct.new(data).tap(&block || proc {}).marshal_dump
 	end
 
-	def method_missing (id)
+	def method_missing (id, *args)
+		unless args.empty?
+			raise ArgumentError, "wrong number of arguments (#{args.length} for 0)"
+		end
+
 		@data[id] if @data.has_key? id
 	end
 

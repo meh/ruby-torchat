@@ -35,7 +35,8 @@ class FileTransfer
 	def initialize (file_transfers = nil, name, size)
 		@file_transfers = file_transfers
 		@id             = id || Torchat.new_cookie
-		@name           = name @size           = size
+		@name           = name
+		@size           = size
 		@block_size     = 4096
 	end
 
@@ -104,6 +105,8 @@ class FileTransfer
 	def next_block
 		raise 'there is no input' unless input
 
+		return if input.tell >= input.size
+
 		@last = Block.new(self, input.tell, input.read(block_size))
 	end
 
@@ -125,6 +128,10 @@ class FileTransfer
 		file_transfers.delete(id) if file_transfers
 
 		self
+	end
+
+	def inspect
+		"#<Torchat::FileTransfer(#{id}): #{name} #{tell}/#{size} (#{completion}%)>"
 	end
 end
 
