@@ -195,7 +195,8 @@ It can have no value or our description UTF-8 encoded.
 
 ### Profile Avatar Alpha
 
-This packet contains the alpha channel of the avatar.
+This packet contains the alpha channel of the avatar, this means that it contains a list
+of bytes referring to the alpha value of said pixel starting from the top left.
 
 This packet **must** be sent even if the avatar has no alpha channel, and the content will
 be empty.
@@ -208,7 +209,8 @@ Keep in mind that the avatar has to be 64x64.
 
 ### Profile Avatar
 
-This packet contains the rgb channels of the avatar.
+This packet contains the rgb channels of the avatar, this means that it contains a list
+of 3 bytes for every pixel in the image starting from the top left.
 
 Keep in mind that the avatar has to be 64x64.
 
