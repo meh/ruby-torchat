@@ -123,7 +123,9 @@ class Session
 		end
 
 		on :filename do |e|
-			file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
+			file_transfer = file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
+
+			fire :file_transfer_start, file_transfer: file_transfer
 		end
 
 		on :filedata do |e|
