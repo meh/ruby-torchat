@@ -212,7 +212,7 @@ class Session
 		end
 
 		# group_chat implementation
-		on :group_chat_invite do |e|
+		on :groupchat_invite do |e|
 			return if group_chats.has_key? e.packet.id
 
 			group_chat = group_chats.create(e.packet.id)
@@ -220,35 +220,35 @@ class Session
 			group_chat.participants.push e.buddy
 		end
 
-		on :group_chat_participants? do |e|
+		on :groupchat_participants? do |e|
 			if group_chat = group_chats[e.packet.id]
-				e.buddy.send_packet [:group_chat, :participants], e.packet.id, group_chat.participants
+				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.participants
 			else
-				e.buddy.send_packet [:group_chat, :not_participating!], e.packet.id
+				e.buddy.send_packet [:groupchat, :not_participating!], e.packet.id
 			end
 		end
 
-		on :group_chat_participants do |e|
+		on :groupchat_participants do |e|
 			return unless group_chat = group_chats[e.packet.id]
 
 			if e.packet.any? { |p| buddies.has_key?(p) && buddies[p].blocked? }
 				group_chat.leave
 			else
-				e.buddy.send_packet [:group_chat, :join], e.packet.id
+				e.buddy.send_packet [:groupchat, :join], e.packet.id
 
 				e.packet.each {|p|
 					buddy = buddies.add_temporary(p)
 
 					buddy.on :verification do |e|
-						buddy.send_packet [:group_chat, :participating?], packet.id
+						buddy.send_packet [:groupchat, :participating?], packet.id
 
-						buddy.on :group_chat_participating! do |e|
+						buddy.on :groupchat_participating! do |e|
 							group_chats[e.packet.id].participants.push e.buddy
 
 							e.remove!
 						end
 
-						buddy.on :group_chat_not_participating! do |e|
+						buddy.on :groupchat_not_participating! do |e|
 							e.remove!
 						end
 
@@ -256,11 +256,11 @@ class Session
 					end
 				}
 
-				fire :joined, chat: group_chats[packet.id]
+				fire :group_chat_join, chat: group_chats[packet.id]
 			end
 		end
 
-		on :group_chat_invited do |packet, buddy|
+		on :groupchat_invited do |packet, buddy|
 			return unless group_chats.has_key? packet.id
 
 			group_chats[packet.id].add(packet.to_s)
