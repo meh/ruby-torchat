@@ -161,6 +161,14 @@ class Buddy
 		send_packet :message, text
 	end
 
+	def send_file (path)
+		session.file_transfers.send_file(self, path)
+	end
+
+	def send_blob (data)
+		session.file_transfers.send_blob(self, data)
+	end
+
 	def send_typing (mode)
 		return unless supports? :typing
 

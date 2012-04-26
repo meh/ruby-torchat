@@ -300,11 +300,7 @@ EM.run {
 
 			d.profile.tor.start "#{d.profile.path || '~/.torchat'}/Tor", -> {
 				abort 'could not load the onion id' if 20.times {
-					if File.exists? 'hidden_service/hostname'
-						d.profile.config['id'] = File.read('hidden_service/hostname')[/^(.*?)\.onion/, 1]
-
-						break
-					end
+					break if File.exists? 'hidden_service/hostname'
 
 					sleep 1
 				}
@@ -354,7 +350,7 @@ EM.run {
 				d.connected e.buddy
 			end
 
-			s.when :removal do |e|
+			s.on :removal do |e|
 				d.removed e.buddy
 			end
 

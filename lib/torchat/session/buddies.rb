@@ -140,7 +140,7 @@ class Buddies < Hash
 		end
 
 		if buddy.blocked?
-			add_temporary(buddy.id).blockFix removal of blocked buddies!
+			add_temporary(buddy.id).block!
 		end
 
 		buddy

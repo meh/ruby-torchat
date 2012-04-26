@@ -17,34 +17,35 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'ostruct'
+require 'digest/md5'
 
-class Torchat; class Session
+class Torchat; class FileTransfer
 
-class Event
-	attr_reader :session, :name
+class Block
+	attr_reader :owner, :offset, :data, :md5
 
-	def initialize (session, name, data = nil, &block)
-		@session = session
-		@name    = name
-
-		@data = OpenStruct.new(data).tap(&block || proc {}).marshal_dump
+	def initialize (owner, offset, data, md5 = nil)
+		@owner  = owner
+		@offset = offset
+		@data   = data.force_encoding('BINARY')
+		@md5    = md5 || Digest::MD5.hexdigest(data)
 	end
 
-	def method_missing (id, *args)
-		unless args.empty?
-			raise ArgumentError, "wrong number of arguments (#{args.length} for 0)"
-		end
-
-		@data[id] if @data.has_key? id
+	def size
+		@size || @data.bytesize
 	end
 
-	def remove!;  @remove = true;  end
-	def removed!; @remove = false; end
-	def remove?;  @remove;         end
+	alias length size
 
-	def stop!;    @stop = true; end
-	def stopped?; @stop;        end
+	def valid?
+		Digest::MD5.hexdigest(data) == md5
+	end
+
+	def to_s
+		@data
+	end
+
+	alias to_str to_s
 end
 
 end; end

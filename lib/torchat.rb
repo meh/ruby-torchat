@@ -44,11 +44,13 @@ class Torchat
 	attr_accessor :name, :path
 
 	def initialize (path)
-		@config = if path.end_with?('ini')
+		@config = if path.is_a? Hash
+			path
+		elsif path.end_with?('ini')
 			ini = IniParse.parse(File.read(File.expand_path(path)))
 
 			{
-				'address'     => ini[:client][:own_hostname],
+				'id'          => ini[:client][:own_hostname],
 				'name'        => ini[:profile][:name],
 				'description' => ini[:profile][:text],
 

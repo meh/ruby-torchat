@@ -21,12 +21,13 @@ require 'eventmachine'
 
 require 'torchat/session/event'
 require 'torchat/session/buddies'
+require 'torchat/session/file_transfers'
 require 'torchat/session/group_chats'
 
 class Torchat
 
 class Session
-	attr_reader   :config, :id, :name, :description, :status, :buddies, :group_chats
+	attr_reader   :config, :id, :name, :description, :status, :buddies, :file_transfers, :group_chats
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -39,8 +40,9 @@ class Session
 		@name        = config['name']
 		@description = config['description']
 
-		@buddies     = Buddies.new(self)
-		@group_chats = GroupChats.new(self)
+		@buddies        = Buddies.new(self)
+		@file_transfers = FileTransfers.new(self)
+		@group_chats    = GroupChats.new(self)
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@before    = Hash.new { |h, k| h[k] = [] }
@@ -122,6 +124,40 @@ class Session
 			e.buddy.avatar.rgb = e.packet.data
 		end
 
+		on :filename do |e|
+			file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
+		end
+
+		on :filedata do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
+
+			if file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
+				e.buddy.send_packet :filedata_ok, e.packet.id, e.packet.offset
+
+				fire :file_transfer_activity, file_transfer: file_transfer
+			else
+				e.buddy.send_packet :filedata_error, e.packet.id, e.packet.offset
+			end
+		end
+
+		on :filedata_ok do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
+
+			if block = file_transfer.next_block
+				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+
+				fire :file_transfer_activity, file_transfer: file_transfer
+			end
+		end
+
+		on :filedata_error do |e|
+			next unless file_transfer = file_transfers[e.packet.id]
+
+			if block = file_transfer.last_block
+				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+			end
+		end
+
 		set_interval 120 do
 			next unless online?
 
@@ -142,7 +178,7 @@ class Session
 			buddies.each_value {|buddy|
 				next if buddy.online? || buddy.blocked?
 
-				next if (Time.new.to_i - buddy.last_try.to_i) < (buddy.tries * 10)
+				next if (Time.new.to_i - buddy.last_try.to_i) < ((buddy.tries > 36 ? 36 : buddy.tries) * 10)
 
 				buddy.connect
 			}
@@ -361,12 +397,6 @@ class Session
 
 		@signature = EM.start_server host, port, Incoming do |incoming|
 			incoming.instance_variable_set :@session, self
-
-			if offline?
-				incoming.close_connection
-
-				next
-			end
 		end
 	end
 

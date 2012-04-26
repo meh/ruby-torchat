@@ -233,7 +233,7 @@ end
 
 define_packet :filename do
 	define_unpacker do |data|
-		id, size, bock_size, name = data.split ' ', 4
+		id, size, block_size, name = data.split ' ', 4
 
 		[name, size, block_size, id]
 	end
@@ -255,6 +255,10 @@ define_packet :filename do
 	def pack
 		super("#{id} #{size} #{block_size} #{name}")
 	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id}): #{name} #{size} #{block_size}>"
+	end
 end
 
 define_packet :filedata do
@@ -264,7 +268,8 @@ define_packet :filedata do
 		[id, offset, data, md5]
 	end
 
-	attr_accessor :id, :offset, :data
+	attr_reader   :data, :md5
+	attr_accessor :id, :offset
 
 	def initialize (id, offset, data, md5 = nil)
 		super()
@@ -272,15 +277,24 @@ define_packet :filedata do
 		@id     = id
 		@offset = offset.to_i
 		@data   = data.force_encoding('BINARY')
-		@md5    = md5 || Digest::MD5.hexdigest(data)
+		@md5    = md5 || Digest::MD5.hexdigest(@data)
+	end
+
+	def data= (value)
+		@data = value.to_s.force_encoding('BINARY')
+		@md5  = Digest::MD5.hexdigest(@data)
 	end
 
 	def valid?
-		Digest::MD5.hexdigest(data) == @md5
+		Digest::MD5.hexdigest(data) == md5
 	end
 
 	def pack
-		super("#{id} #{offset} #{hash} #{data}")
+		super("#{id} #{offset} #{md5} #{data}")
+	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id}): #{offset} #{data.size}>"
 	end
 end
 
@@ -301,6 +315,10 @@ define_packet :filedata_ok do
 	def pack
 		super("#{id} #{offset}")
 	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id}): #{offset}>"
+	end
 end
 
 define_packet :filedata_error do
@@ -320,6 +338,10 @@ define_packet :filedata_error do
 	def pack
 		super("#{id} #{offset}")
 	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id}): #{offset}>"
+	end
 end
 
 define_packet :file_stop_sending do
@@ -328,6 +350,10 @@ define_packet :file_stop_sending do
 	def id
 		@internal
 	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id})>"
+	end
 end
 
 define_packet :file_stop_receiving do
@@ -335,6 +361,10 @@ define_packet :file_stop_receiving do
 
 	def id
 		@internal
+	end
+
+	def inspect
+		"#<Torchat::Packet[#{type}](#{id})>"
 	end
 end
 
