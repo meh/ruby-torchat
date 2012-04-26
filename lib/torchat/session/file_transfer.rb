@@ -99,9 +99,9 @@ class FileTransfer
 	end
 
 	def abort
-		if from
+		if incoming?
 			from.send_packet :file_stop_sending, id
-		elsif to
+		elsif outgoing?
 			to.send_packet :file_stop_receiving, id
 		else
 			raise ArgumentError, 'the file transfer is unstoppable, call Denzel Washington'
