@@ -116,16 +116,25 @@ class FileTransfer
 		@last = Block.new(self, input.tell, input.read(block_size))
 	end
 
-	def abort
-		if incoming?
-			from.send_packet :file_stop_sending, id
-		elsif outgoing?
-			to.send_packet :file_stop_receiving, id
-		else
-			raise ArgumentError, 'the file transfer is unstoppable, call Denzel Washington'
+	def stopped?; @stopped; end
+
+	def stop (interrupted_by_other = false)
+		unless interrupted_by_other
+			if incoming?
+				from.send_packet :file_stop_sending, id
+			elsif outgoing?
+				to.send_packet :file_stop_receiving, id
+			else
+				raise ArgumentError, 'the file transfer is unstoppable, call Denzel Washington'
+			end
 		end
 
-		file_transfers.delete(id) if file_transfers
+		@stopped = true
+
+		if file_transfers
+			file_transfers.delete(id)
+			file_transfers.session.fire :file_transfer_stop, file_transfer: self
+		end
 
 		self
 	end

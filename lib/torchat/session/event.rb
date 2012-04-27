@@ -33,7 +33,7 @@ class Event
 
 	def method_missing (id, *args)
 		unless args.empty?
-			raise ArgumentError, "wrong number of arguments (#{args.length} for 0)"
+			raise ArgumentError, 'tried to pass parameters to an Event attribute'
 		end
 
 		@data[id] if @data.has_key? id

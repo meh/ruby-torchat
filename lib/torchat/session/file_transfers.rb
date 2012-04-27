@@ -35,8 +35,10 @@ class FileTransfers <  Hash
 			raise ArgumentError, 'file transfer with same id already exists'
 		end
 
-		self[id] = FileTransfer.new(id, name, size).tap {|ft|
+		FileTransfer.new(id, name, size).tap {|ft|
 			ft.from = sender
+
+			self[ft.id] = ft
 		}
 	end
 
@@ -62,16 +64,18 @@ class FileTransfers <  Hash
 		}
 	end
 
-	def abort (id)
+	def stop (id)
 		unless file_transfer = self[id]
 			raise ArgumentError, 'unexistent file transfer'
 		end
 
-		delete(file_transfer.abort.id)
+		delete(file_transfer.stop.id)
 	end
 
 private
 	def start_sending (file_transfer)
+		session.fire :file_transfer_start, file_transfer: file_transfer
+
 		file_transfer.to.send_packet :filename, file_transfer.name, file_transfer.size, file_transfer.block_size, file_transfer.id
 
 		file_transfer.next_block.tap {|block|
