@@ -72,11 +72,11 @@ class Session
 			e.buddy.send_packet :status, status
 		end
 
-		on :supports do |e|
+		on_packet :supports do |e|
 			e.buddy.supports *e.packet.to_a
 		end
 
-		on :status do |e|
+		on_packet :status do |e|
 			next if e.buddy.ready?
 
 			e.buddy.ready!
@@ -84,51 +84,67 @@ class Session
 			fire :ready, buddy: e.buddy
 		end
 
-		on :add_me do |e|
+		on_packet :add_me do |e|
 			e.buddy.permanent!
 		end
 
-		on :remove_me do |e|
+		on_packet :remove_me do |e|
 			buddies.remove e.buddy
 
 			e.buddy.disconnect
 		end
 
-		on :client do |e|
+		on_packet :client do |e|
 			e.buddy.client.name = e.packet.to_str
 		end
 
-		on :version do |e|
+		on_packet :version do |e|
 			e.buddy.client.version = e.packet.to_str
 		end
 
-		on :status do |e|
-			e.buddy.status = e.packet.to_sym
+		on_packet :status do |e|
+			old = e.buddy.status
+
+			if old != e.packet.to_sym
+				e.buddy.status = e.packet.to_sym
+
+				fire :status_change, buddy: e.buddy, old: old, new: e.packet.to_sym
+			end
 		end
 
-		on :profile_name do |e|
+		on_packet :profile_name do |e|
 			e.buddy.name = e.packet.to_str
+
+			fire :profile_change, buddy: e.buddy, changed: :name
 		end
 
-		on :profile_text do |e|
+		on_packet :profile_text do |e|
 			e.buddy.description = e.packet.to_str
+
+			fire :profile_change, buddy: e.buddy, changed: :description
 		end
 
-		on :profile_avatar_alpha do |e|
+		on_packet :profile_avatar_alpha do |e|
 			e.buddy.avatar.alpha = e.packet.data
 		end
 
-		on :profile_avatar do |e|
+		on_packet :profile_avatar do |e|
 			e.buddy.avatar.rgb = e.packet.data
+
+			fire :profile_change, buddy: e.buddy, changed: :avatar
 		end
 
-		on :filename do |e|
+		on_packet :message do |e|
+			fire :message, from: e.buddy, content: e.packet.to_str
+		end
+
+		on_packet :filename do |e|
 			file_transfer = file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
 
 			fire :file_transfer_start, file_transfer: file_transfer
 		end
 
-		on :filedata do |e|
+		on_packet :filedata do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			if file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
@@ -140,7 +156,7 @@ class Session
 			end
 		end
 
-		on :filedata_ok do |e|
+		on_packet :filedata_ok do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			if block = file_transfer.next_block
@@ -150,7 +166,7 @@ class Session
 			end
 		end
 
-		on :filedata_error do |e|
+		on_packet :filedata_error do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			if block = file_transfer.last_block
@@ -158,13 +174,13 @@ class Session
 			end
 		end
 
-		on :file_stop_sending do |e|
+		on_packet :file_stop_sending do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			file_transfer.stop(true)
 		end
 
-		on :file_stop_receiving do |e|
+		on_packet :file_stop_receiving do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			file_transfer.stop(true)
@@ -197,25 +213,25 @@ class Session
 		end
 
 		# typing extension support
-		on :typing_start do |e|
+		on_packet :typing_start do |e|
 			e.buddy.typing!
 
 			fire :typing, buddy: e.buddy, mode: :start
 		end
 
-		on :typing_thinking do |e|
+		on_packet :typing_thinking do |e|
 			e.buddy.thinking!
 
 			fire :typing, buddy: e.buddy, mode: :thinking
 		end
 
-		on :typing_stop do |e|
+		on_packet :typing_stop do |e|
 			e.buddy.not_typing!
 
 			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
-		on :message do |e|
+		on_packet :message do |e|
 			next unless e.buddy.typing? || e.buddy.thinking?
 
 			e.buddy.not_typing!
@@ -249,6 +265,8 @@ class Session
 		@name = value
 
 		buddies.each_value {|buddy|
+			next unless buddy.online?
+
 			buddy.send_packet :profile_name, value
 		}
 	end
@@ -257,6 +275,8 @@ class Session
 		@description = value
 
 		buddies.each_value {|buddy|
+			next unless buddy.online?
+
 			buddy.send_packet :profile_text, value
 		}
 	end
@@ -298,6 +318,8 @@ class Session
 		@status = value.to_sym.downcase
 
 		buddies.each_value {|buddy|
+			next unless buddy.online?
+
 			buddy.send_packet :status, @status
 		}
 	end
@@ -308,6 +330,16 @@ class Session
 
 	alias when on
 
+	def on_packet (name = nil, &block)
+		if name
+			on :packet do |e|
+				block.call e if e.packet.type == name
+			end
+		else
+			on :packet, &block
+		end
+	end
+
 	def before (what = nil, &block)
 		@before[what] << block
 	end
@@ -317,7 +349,7 @@ class Session
 	end
 
 	def received (packet)
-		fire packet.type, packet: packet, buddy: packet.from
+		fire :packet, packet: packet, buddy: packet.from
 	end
 
 	def fire (name, data = nil, &block)

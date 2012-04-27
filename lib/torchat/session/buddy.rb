@@ -93,6 +93,16 @@ class Buddy
 
 	alias when on
 
+	def on_packet (name = nil)
+		if name
+			on :packet do |e|
+				block.call e if e.packet.type == name
+			end
+		else
+			on :packet, &block
+		end
+	end
+
 	def has_incoming?
 		!!@incoming
 	end

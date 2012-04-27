@@ -360,11 +360,9 @@ EM.run {
 				d.disconnected e.buddy
 			end
 
-			%w(message status client version profile_name profile_text add_me remove_me).each {|type|
-				s.on type do |e|
-					d.received e.packet
-				end
-			}
+			s.on_packet do |e|
+				d.received e.packet
+			end
 
 			s.on :typing do |e|
 				d.typing e.buddy, e.mode
