@@ -22,6 +22,25 @@ require 'ostruct'
 class Torchat; class Session
 
 class Event
+	class Removable
+		attr_reader :session, :block
+
+		def initialize (session, block)
+			@session = session
+			@block   = block
+		end
+
+		def removed?; @removed; end
+
+		def remove!
+			return if removed?
+
+			@removed = true
+
+			session.remove_callback(@block)
+		end
+	end
+
 	attr_reader :session, :name
 
 	def initialize (session, name, data = nil, &block)

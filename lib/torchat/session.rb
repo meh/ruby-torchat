@@ -242,15 +242,17 @@ class Session
 		end
 
 		# group_chat implementation
-		on :groupchat_invite do |e|
+		on_packet :groupchat_invite do |e|
 			return if group_chats.has_key? e.packet.id
 
 			group_chat = group_chats.create(e.packet.id)
 			group_chat.invited!
 			group_chat.participants.push e.buddy
+
+			fire :group_chat_invitation, group_chat: group_chat, invitor: e.buddy
 		end
 
-		on :groupchat_participants? do |e|
+		on_packet :groupchat_participants? do |e|
 			if group_chat = group_chats[e.packet.id]
 				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.participants
 			else
@@ -258,39 +260,55 @@ class Session
 			end
 		end
 
-		on :groupchat_participants do |e|
+		on_packet :groupchat_participants do |e|
 			return unless group_chat = group_chats[e.packet.id]
 
 			if e.packet.any? { |p| buddies.has_key?(p) && buddies[p].blocked? }
 				group_chat.leave
 			else
-				e.buddy.send_packet [:groupchat, :join], e.packet.id
-
 				e.packet.each {|p|
 					buddy = buddies.add_temporary(p)
 
-					buddy.on :verification do |e|
-						buddy.send_packet [:groupchat, :participating?], packet.id
-
-						buddy.on :groupchat_participating! do |e|
-							group_chats[e.packet.id].participants.push e.buddy
-
-							e.remove!
+					buddy.when :ready do |e|
+						if e.packet.all? { |id| buddies[id].online? }
+							e.buddy.send_packet [:groupchat, :join], e.packet.id
 						end
 
-						buddy.on :groupchat_not_participating! do |e|
-							e.remove!
+						buddy.send_packet [:groupchat, :participating?], packet.id
+
+						participating, not_participating = nil
+
+						participating = buddy.on_packet :groupchat_participating! do |e|
+							unless group_chat.left?
+								group_chat.participants.push e.buddy
+							end
+
+							participating.remove!
+							not_participating.remove!
+						end
+
+						not_participating = buddy.on_packet :groupchat_not_participating! do |e|
+							group_chat.leave
+
+							participating.remove!
+							not_participating.remove!
+						end
+
+						# avoid possible memory leak
+						set_timeout 10 do
+							participating.remove!
+							not_participating.remove!
 						end
 
 						e.remove!
 					end
 				}
 
-				fire :group_chat_join, chat: group_chats[packet.id]
+				fire :group_chat_join, group_chat: group_chats[packet.id]
 			end
 		end
 
-		on :groupchat_invited do |packet, buddy|
+		on_packet :groupchat_invited do |packet, buddy|
 			return unless group_chats.has_key? packet.id
 
 			group_chats[packet.id].add(packet.to_s)
@@ -389,6 +407,8 @@ class Session
 
 	def on (what, &block)
 		@callbacks[what.to_sym.downcase] << block
+
+		Event::Removable.new(self, block)
 	end
 
 	alias when on
@@ -411,6 +431,20 @@ class Session
 		@after[what] << block
 	end
 
+	def remove_callback (block)
+		block = block.block if block.is_a? Event::Removable
+
+		[@before[nil], @before[name], @callbacks[name], @after[name], @after[nil]].each {|callbacks|
+			callbacks.each {|callback|
+				if callback == block
+					callbacks.delete(callback)
+
+					return
+				end
+			}
+		}
+	end
+
 	def received (packet)
 		fire :packet, packet: packet, buddy: packet.from
 	end
@@ -428,7 +462,7 @@ class Session
 				end
 
 				if event.remove?
-					callbacks.delete(callback)
+					remove_callback(callback)
 					event.removed!
 				end
 				

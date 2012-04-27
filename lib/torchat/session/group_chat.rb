@@ -41,7 +41,11 @@ class GroupChat
 		@participants.delete(session.buddies[buddy])
 	end
 
+	def left?; @left; end
+
 	def leave
+		@left = true
+
 		participants.each {|buddy|
 			buddy.send_packet [:groupchat, :leave], id
 		}
