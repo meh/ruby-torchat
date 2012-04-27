@@ -61,7 +61,7 @@ class Outgoing < EventMachine::Protocols::LineAndTextProtocol
 		
 		return unless packet.type.to_s.start_with 'file'
 
-		@owner.session.received packet
+		@owner.session.received_packet packet
 	end
 
 	def send_packet (*args)

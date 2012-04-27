@@ -17,6 +17,10 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
+require 'forwardable'
+
+require 'torchat/session/group_chat/participants'
+
 class Torchat; class Session
 
 class GroupChat
@@ -27,18 +31,34 @@ class GroupChat
 		@id      = id
 		@modes   = modes.flatten.uniq.compact.map(&:to_sym)
 
-		@participants = []
+		@participants = Participants.new(self)
 	end
 
-	def invited!; @invited = true; end
-	def invited?; @invited;        end
+	def on (what, &block)
+		session.on what do |e|
+			block.call e if e.group_chat == self
+		end
+	end
+
+	def invited_by (value = nil)
+		raise ArgumentError, 'cannot overwrite the invitor' if @invited_by && value
+
+		value ? @invited_by = value : @invited_by
+	end
+
+	def invited?
+		!!invited_by
+	end
 
 	def invite (buddy)
+		return unless buddy = session.buddies[buddy]
 
-	end
+		return unless buddy.online?
 
-	def delete (buddy)
-		@participants.delete(session.buddies[buddy])
+		buddy.send_packet [:groupchat, :invite], id, modes
+		buddy.send_packet [:groupchat, :participants], id, participants.map(&:id)
+
+		self
 	end
 
 	def left?; @left; end

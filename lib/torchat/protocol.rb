@@ -178,7 +178,7 @@ class Packet
 					end
 				end
 
-				args = data.split ' ', range.end
+				args = range.end != -1 ? data.split(' ', range.end) : data.split(' ')
 
 				if range.end == -1
 					range = range.begin .. args.length

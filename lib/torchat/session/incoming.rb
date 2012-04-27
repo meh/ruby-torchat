@@ -159,7 +159,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 
 			@owner.last_received = packet
 
-			@owner.session.received packet
+			@owner.session.received_packet packet
 		end
 	rescue => e
 		Torchat.debug e
@@ -169,7 +169,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 		@delayed.each {|packet|
 			packet.from = @owner
 
-			@owner.session.received packet
+			@owner.session.received_packet packet
 		}
 
 		@delayed = nil

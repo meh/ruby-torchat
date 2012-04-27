@@ -59,6 +59,10 @@ class Event
 
 		@data[id] if @data.has_key? id
 	end
+	
+	def respond_to_missing? (id)
+		true
+	end
 
 	def remove!;  @remove = true;  end
 	def removed!; @remove = false; end

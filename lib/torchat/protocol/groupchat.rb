@@ -30,8 +30,12 @@ define_extension :groupchat do
 			@modes = modes.flatten.compact.uniq.map(&:to_sym)
 		end
 
+		def pack
+			super("#{id}#{" #{modes.join ' '}" unless modes.empty?}")
+		end
+
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{@modes.join ' '}" unless @modes.empty?}>"
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{modes.join ' '}" unless modes.empty?}>"
 		end
 	end
 
@@ -45,8 +49,7 @@ define_extension :groupchat do
 		attr_accessor :id
 
 		def initialize (id, *participants)
-			@id = id
-
+			@id       = id
 			@internal = participants.flatten.compact.uniq
 		end
 
@@ -56,12 +59,16 @@ define_extension :groupchat do
 			super
 		end
 
+		def respond_to_missing? (id)
+			@internal.respond_to? id
+		end
+
 		def pack
-			super("#{id} #{join ' '}")
+			super("#{id}#{" #{join ' '}" unless empty?}")
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{@internal.join ', '}>"
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{join ' '}" unless empty?}>"
 		end
 	end
 
@@ -132,12 +139,11 @@ define_extension :groupchat do
 	define_packet :invited do
 		define_unpacker_for 2
 
-		attr_accessor :id
+		attr_accessor :id, :buddy
 
 		def initialize (id, buddy)
-			@id = id
-
-			@internal = buddy.is_a?(Buddy) ? buddy.id : buddy
+			@id    = id
+			@buddy = buddy
 		end
 
 		def pack
@@ -145,13 +151,13 @@ define_extension :groupchat do
 		end
 
 		def to_s
-			@internal
+			@buddy
 		end
 
 		alias to_str to_s
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s.inspect}>"
+			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s}>"
 		end
 	end
 

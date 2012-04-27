@@ -67,11 +67,7 @@ class Buddies < Hash
 			return buddy
 		end
 
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(session, id)
-		end
+		buddy = id.is_a?(Buddy) ? id : Buddy.new(session, id)
 
 		raise ArgumentError, 'you cannot add yourself' if session.id == buddy.id
 
@@ -92,11 +88,7 @@ class Buddies < Hash
 			return buddy
 		end
 
-		buddy = if id.is_a? Buddy
-			id
-		else
-			Buddy.new(session, id)
-		end
+		buddy = id.is_a?(Buddy) ? id : Buddy.new(session, id)
 
 		raise ArgumentError, 'you cannot add yourself' if session.id == buddy.id
 

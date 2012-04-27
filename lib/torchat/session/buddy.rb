@@ -49,7 +49,7 @@ class Buddy
 
 	Client = Struct.new(:name, :version)
 
-	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try
+	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try, :group_chats
 	attr_writer   :status
 	attr_accessor :name, :description, :alias, :last_received
 
@@ -60,12 +60,13 @@ class Buddy
 			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 
-		@session  = session
-		@id       = id[/^(.*?)(\.onion)?$/, 1]
-		@address  = "#{@id}.onion"
-		@avatar   = Avatar.new
-		@client   = Client.new
-		@supports = []
+		@session     = session
+		@id          = id[/^(.*?)(\.onion)?$/, 1]
+		@address     = "#{@id}.onion"
+		@avatar      = Avatar.new
+		@client      = Client.new
+		@supports    = []
+		@group_chats = []
 
 		@tries = 0
 

@@ -137,7 +137,7 @@ class Session
 		end
 
 		on_packet :message do |e|
-			fire :message, from: e.buddy, content: e.packet.to_str
+			fire :message, buddy: e.buddy, content: e.packet.to_str
 		end
 
 		on_packet :filename do |e|
@@ -150,11 +150,11 @@ class Session
 			next unless file_transfer = file_transfers[e.packet.id]
 
 			if file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
-				e.buddy.send_packet :filedata_ok, e.packet.id, e.packet.offset
+				e.buddy.send_packet :filedata_ok, file_transfer.id, e.packet.offset
 
 				fire :file_transfer_activity, file_transfer: file_transfer
 			else
-				e.buddy.send_packet :filedata_error, e.packet.id, e.packet.offset
+				e.buddy.send_packet :filedata_error, file_transfer.id, e.packet.offset
 			end
 		end
 
@@ -242,17 +242,19 @@ class Session
 		end
 
 		# group_chat implementation
-		on_packet :groupchat_invite do |e|
-			return if group_chats.has_key? e.packet.id
+		on_packet :groupchat, :invite do |e|
+			next if group_chats.has_key? e.packet.id
 
 			group_chat = group_chats.create(e.packet.id)
-			group_chat.invited!
-			group_chat.participants.push e.buddy
+			group_chat.invited_by e.buddy
+			group_chat.participants.add e.buddy
+
+			e.buddy.group_chats.push group_chat
 
 			fire :group_chat_invitation, group_chat: group_chat, invitor: e.buddy
 		end
 
-		on_packet :groupchat_participants? do |e|
+		on_packet :groupchat, :participants? do |e|
 			if group_chat = group_chats[e.packet.id]
 				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.participants
 			else
@@ -260,64 +262,107 @@ class Session
 			end
 		end
 
-		on_packet :groupchat_participants do |e|
-			return unless group_chat = group_chats[e.packet.id]
-
-			if e.packet.any? { |p| buddies.has_key?(p) && buddies[p].blocked? }
-				group_chat.leave
+		on_packet :groupchat, :participating? do |e|
+			if group_chats[e.packet.id]
+				e.buddy.send_packet [:groupchat, :participating!]
 			else
-				e.packet.each {|p|
-					buddy = buddies.add_temporary(p)
-
-					buddy.when :ready do |e|
-						if e.packet.all? { |id| buddies[id].online? }
-							e.buddy.send_packet [:groupchat, :join], e.packet.id
-						end
-
-						buddy.send_packet [:groupchat, :participating?], packet.id
-
-						participating, not_participating = nil
-
-						participating = buddy.on_packet :groupchat_participating! do |e|
-							unless group_chat.left?
-								group_chat.participants.push e.buddy
-							end
-
-							participating.remove!
-							not_participating.remove!
-						end
-
-						not_participating = buddy.on_packet :groupchat_not_participating! do |e|
-							group_chat.leave
-
-							participating.remove!
-							not_participating.remove!
-						end
-
-						# avoid possible memory leak
-						set_timeout 10 do
-							participating.remove!
-							not_participating.remove!
-						end
-
-						e.remove!
-					end
-				}
-
-				fire :group_chat_join, group_chat: group_chats[packet.id]
+				e.buddy.send_packet [:groupchat, :not_participating!]
 			end
 		end
 
-		on_packet :groupchat_invited do |packet, buddy|
-			return unless group_chats.has_key? packet.id
+		on_packet :groupchat, :participants do |e|
+			return unless group_chat = group_chats[e.packet.id]
 
-			group_chats[packet.id].add(packet.to_s)
+			if e.packet.any? { |id| buddies.has_key?(id) && buddies[id].blocked? }
+				group_chat.leave
+			else
+				if e.packet.empty? || e.packet.all? { |id| buddies.has_key?(id) && buddies[id].online? }
+					e.buddy.send_packet [:groupchat, :join], group_chat.id
+
+					fire :group_chat_join, group_chat: group_chat
+				else
+					e.packet.each {|p|
+						buddy = buddies.add_temporary(p)
+
+						buddy.when :ready do
+							if e.packet.all? { |id| buddies[id].online? }
+								e.buddy.send_packet [:groupchat, :join], group_chat.id
+
+								fire :group_chat_join, group_chat: group_chat
+							end
+
+							buddy.send_packet [:groupchat, :participating?], group_chat.id
+
+							participating = buddy.on_packet :groupchat_participating! do |e|
+								group_chat.participants.add e.buddy
+
+								e.remove!
+							end
+
+							not_participating = buddy.on_packet :groupchat_not_participating! do |e|
+								group_chat.leave
+
+								e.remove!
+							end
+
+							# avoid possible memory leak, I don't do this inside both callbacks
+							# because a bad guy could not send either of those packets and there
+							# would be a leak anyway
+							set_timeout 10 do
+								participating.remove!
+								not_participating.remove!
+							end
+
+							e.remove!
+						end
+					}
+				end
+			end
 		end
 
-		on :disconnection do |buddy|
-			group_chats.each_value {|group_chat|
-				group_chat.delete(buddy)
+		on_packet :groupchat, :invited do |e|
+			return unless group_chat = group_chats[e.packet.id]
+
+			group_chat.participants.add(e.packet.to_s)
+
+			fire :group_chat_join, group_chat: group_chat, buddy: e.buddy
+		end
+
+		on_packet :groupchat, :join do |e|
+			return unless group_chat = group_chats[e.packet.id]
+
+			group_chat.participants.each {|participant|
+				participant.send_packet [:groupchat, :invited], group_chat.id, e.buddy.id
 			}
+
+			fire :group_chat_join, group_chat: group_chat, buddy: e.buddy
+		end
+
+		on_packet :groupchat, :leave do |e|
+			return unless group_chat = group_chats[e.packet.id]
+
+			fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy, reason: e.reason
+		end
+
+		on :disconnection do |e|
+			e.buddy.group_chats.each {|group_chat|
+				fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
+			}
+		end
+
+		on :group_chat_join do |e|
+			next unless e.buddy
+
+			e.group_chat.participants.add(e.buddy)
+			e.buddy.group_chats.push(e.group_chat)
+			e.buddy.group_chats.uniq!
+		end
+
+		on :group_chat_leave do |e|
+			next unless e.buddy
+
+			e.group_chat.participants.delete(e.buddy)
+			e.buddy.group_chats.delete(e.group_chat)
 		end
 
 		yield self if block_given?
@@ -415,10 +460,16 @@ class Session
 
 	alias when on
 
-	def on_packet (name = nil, &block)
+	def on_packet (*args, &block)
+		if args.length == 2
+			extension, name = args
+		else
+			extension, name = nil, args.first
+		end
+
 		if name
 			on :packet do |e|
-				block.call e if e.packet.type == name
+				block.call e if e.packet.type == name && e.packet.extension == extension
 			end
 		else
 			on :packet, &block
@@ -469,7 +520,7 @@ class Session
 		end
 	end
 
-	def received (packet)
+	def received_packet (packet)
 		fire :packet, packet: packet, buddy: packet.from
 	end
 
