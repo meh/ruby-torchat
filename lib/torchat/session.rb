@@ -151,6 +151,10 @@ class Session
 				e.buddy.send_packet :filedata_ok, e.packet.id, e.packet.offset
 
 				fire :file_transfer_activity, file_transfer: file_transfer
+
+				if file_transfer.completion == 100
+					fire :file_transfer_completed, file_transfer: file_transfer
+				end
 			else
 				e.buddy.send_packet :filedata_error, e.packet.id, e.packet.offset
 			end
@@ -163,6 +167,8 @@ class Session
 				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
 
 				fire :file_transfer_activity, file_transfer: file_transfer
+			else
+				fire :file_transfer_completed, file_transfer: file_transfer
 			end
 		end
 
