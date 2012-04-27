@@ -406,9 +406,11 @@ class Session
 	end
 
 	def on (what, &block)
-		@callbacks[what.to_sym.downcase] << block
+		what = what.to_sym.downcase
 
-		Event::Removable.new(self, block)
+		@callbacks[what] << block
+
+		Event::Removable.new(self, what, &block)
 	end
 
 	alias when on
@@ -424,25 +426,47 @@ class Session
 	end
 
 	def before (what = nil, &block)
+		what = what.to_sym.downcase if what
+
 		@before[what] << block
+
+		Event::Removable.new(self, what, :before, &block)
 	end
 
 	def after (what = nil, &block)
+		what = what.to_sym.downcase if what
+
 		@after[what] << block
+
+		Event::Removable.new(self, what, :after, &block)
 	end
 
-	def remove_callback (block)
-		block = block.block if block.is_a? Event::Removable
+	def remove_callback (chain = nil, name = nil, block)
+		if block.is_a? Event::Removable
+			chain = block.chain
+			name  = block.name
+			block = block.block
+		end
 
-		[@before[nil], @before[name], @callbacks[name], @after[name], @after[nil]].each {|callbacks|
-			callbacks.each {|callback|
-				if callback == block
-					callbacks.delete(callback)
+		if name && chain
+			if chain == :before
+				@before[name]
+			elsif chain == :after
+				@after[name]
+			else
+				@callbacks[name]
+			end.delete(block)
+		else
+			[@before[nil], @before[name], @callbacks[name], @after[name], @after[nil]].each {|callbacks|
+				callbacks.each {|callback|
+					if callback == block
+						callbacks.delete(callback)
 
-					return
-				end
+						return
+					end
+				}
 			}
-		}
+		end
 	end
 
 	def received (packet)

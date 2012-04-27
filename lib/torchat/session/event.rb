@@ -23,10 +23,12 @@ class Torchat; class Session
 
 class Event
 	class Removable
-		attr_reader :session, :block
+		attr_reader :session, :name, :chain, :block
 
-		def initialize (session, block)
+		def initialize (session, name, chain = nil, &block)
 			@session = session
+			@name    = name
+			@chain   = chain
 			@block   = block
 		end
 
@@ -37,7 +39,7 @@ class Event
 
 			@removed = true
 
-			session.remove_callback(@block)
+			session.remove_callback(chain, name, block)
 		end
 	end
 
