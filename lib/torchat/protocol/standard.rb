@@ -36,8 +36,6 @@ define_packet :ping do
 	attr_accessor :cookie
 
 	def initialize (address, cookie = nil)
-		super()
-
 		self.address = address
 		self.cookie  = cookie || Torchat.new_cookie
 	end
@@ -95,8 +93,6 @@ define_packet :supports do
 	define_unpacker_for 0 .. -1
 
 	def initialize (*supports)
-		super()
-
 		@internal = supports.flatten.compact.map(&:downcase).map(&:to_sym).uniq
 	end
 
@@ -122,8 +118,6 @@ define_packet :status do
 		unless Protocol[:status].valid?(name)
 			raise ArgumentError, "#{name} is not a valid status"
 		end
-
-		super()
 
 		@internal = name.to_sym.downcase
 	end
@@ -243,8 +237,6 @@ define_packet :filename do
 	attr_accessor :id, :name, :size, :block_size
 
 	def initialize (name, size, block_size = 4096, id = nil)
-		super()
-
 		@name       = name
 		@size       = size.to_i
 		@block_size = block_size.to_i
@@ -274,8 +266,6 @@ define_packet :filedata do
 	attr_accessor :id, :offset
 
 	def initialize (id, offset, data, md5 = nil)
-		super()
-
 		@id     = id
 		@offset = offset.to_i
 		@data   = data.force_encoding('BINARY')
@@ -308,8 +298,6 @@ define_packet :filedata_ok do
 	attr_accessor :id, :offset
 
 	def initialize (id, offset)
-		super()
-
 		@id     = id
 		@offset = offset.to_i
 	end
@@ -331,8 +319,6 @@ define_packet :filedata_error do
 	attr_accessor :id, :offset
 
 	def initialize (id, offset)
-		super()
-
 		@id     = id
 		@offset = offset.to_i
 	end

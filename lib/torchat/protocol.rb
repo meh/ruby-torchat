@@ -85,8 +85,6 @@ def self.extensions
 	}
 end
 
-# when defining a packet remember to ALWAYS call super() if you redefine the constructor
-# or bad stuff will happen (like having connection timeouts for seemingly random reasons).
 def self.define_packet (name, &block)
 	raise ArgumentError, "#{name} already exists" if has_packet?(@extension, name)
 
@@ -205,14 +203,10 @@ class Packet
 		elsif range.end == 1
 			if range.begin == 0
 				define_method :initialize do |value = nil|
-					super()
-
 					@internal = value
 				end
 			else
 				define_method :initialize do |value|
-					super()
-
 					@internal = value
 				end
 			end
@@ -230,8 +224,6 @@ class Packet
 			end
 		else
 			define_method :initialize do |*args|
-				super()
-
 				@internal = args
 			end
 
@@ -241,11 +233,13 @@ class Packet
 		end
 	end
 
-	attr_accessor :from, :at
-
-	def initialize
-		@at = Time.new
+	def self.new (*args, &block)
+		super(*args, &block).tap {|packet|
+			packet.at = Time.new
+		}
 	end
+
+	attr_accessor :from, :at
 
 	def pack (data)
 		"#{"#{extension}_" if extension}#{type}#{" #{Protocol.encode(data)}" if data}\n"
