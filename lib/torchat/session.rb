@@ -329,9 +329,15 @@ class Session
 		on_packet :groupchat, :invited do |e|
 			return unless group_chat = group_chats[e.packet.id]
 
-			group_chat.participants.add(e.packet.to_s)
+			unless (buddy = buddies[e.packet.to_s]) && buddy.online?
+				buddy = buddies.add_temporary(e.packet.to_s)
 
-			fire :group_chat_join, group_chat: group_chat, buddy: e.buddy
+				buddy.on :ready do |e|
+					fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
+				end
+			else
+				fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
+			end
 		end
 
 		on_packet :groupchat, :join do |e|
