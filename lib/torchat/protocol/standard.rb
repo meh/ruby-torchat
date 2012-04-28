@@ -95,6 +95,8 @@ define_packet :supports do
 	define_unpacker_for 0 .. -1
 
 	def initialize (*supports)
+		super()
+
 		@internal = supports.flatten.compact.map(&:downcase).map(&:to_sym).uniq
 	end
 

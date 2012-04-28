@@ -43,6 +43,10 @@ class GroupChats < Hash
 	private :[]=
 
 	def create (id = Torchat.new_cookie)
+		if has_key? id
+			raise ArgumentError, "a groupchat named #{id} already exists"
+		end
+
 		GroupChat.new(session, id).tap {|group_chat|
 			self[id] = group_chat
 
@@ -51,6 +55,10 @@ class GroupChats < Hash
 	end
 
 	def destroy (id)
+		unless has_key? id
+			raise ArgumentError, "a groupchat named #{id} doesn't exists"
+		end
+
 		self[id].tap {|group_chat|
 			delete group_chat.id
 

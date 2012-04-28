@@ -67,8 +67,8 @@ class Buddy
 		@client      = Client.new
 		@supports    = []
 		@group_chats = {}
-
-		@tries = 0
+		@tries       = 0
+		@last_try    = nil
 
 		own! incoming
 		own! outgoing
@@ -266,12 +266,13 @@ class Buddy
 
 		session.fire :disconnection, buddy: self
 
-		@last_received = nil
 		@verified      = false
 		@ready         = false
 		@connecting    = false
 		@connected     = false
 		@group_chats   = {}
+		@tries         = 0
+		@last_received = nil
 
 		disconnect
 	end

@@ -90,6 +90,10 @@ class GroupChat
 			buddy.send_packet [:groupchat, :message], id, message
 		}
 	end
+
+	def inspect
+		"#<Torchat::GroupChat(#{id})#{"[#{modes.join ' '}]" unless modes.empty?}: #{empty? ? 'empty' : map(&:id).join(' ')}>"
+	end
 end
 
 end; end

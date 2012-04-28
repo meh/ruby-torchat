@@ -26,6 +26,8 @@ define_extension :groupchat do
 		attr_reader :id, :modes
 
 		def initialize (id = nil, *modes)
+			super()
+
 			@id    = id || Torchat.new_cookie
 			@modes = modes.flatten.compact.uniq.map(&:to_sym)
 		end
@@ -49,6 +51,8 @@ define_extension :groupchat do
 		attr_accessor :id
 
 		def initialize (id, *participants)
+			super()
+
 			@id       = id
 			@internal = participants.flatten.compact.uniq
 		end
@@ -126,9 +130,14 @@ define_extension :groupchat do
 		attr_accessor :id, :reason
 
 		def initialize (id, reason = nil)
-			@id = id
+			super()
 
+			@id     = id
 			@reason = reason
+		end
+
+		def pack
+			super("#{id} #{reason}")
 		end
 
 		def inspect
@@ -142,6 +151,8 @@ define_extension :groupchat do
 		attr_accessor :id, :buddy
 
 		def initialize (id, buddy)
+			super()
+
 			@id    = id
 			@buddy = buddy
 		end
@@ -164,12 +175,13 @@ define_extension :groupchat do
 	define_packet :message do
 		define_unpacker_for 2
 
-		attr_accessor :id
+		attr_accessor :id, :content
 
-		def initialize (id, message)
-			@id = id
+		def initialize (id, content)
+			super()
 
-			@internal = message
+			@id      = id
+			@content = content
 		end
 
 		def pack
@@ -177,7 +189,7 @@ define_extension :groupchat do
 		end
 
 		def to_s
-			@internal
+			@content
 		end
 
 		alias to_str to_s

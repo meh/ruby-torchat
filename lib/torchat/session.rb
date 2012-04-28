@@ -277,7 +277,7 @@ class Session
 		end
 
 		on_packet :groupchat, :participants do |e|
-			return unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = group_chats[e.packet.id]
 
 			if e.packet.any? { |id| buddies.has_key?(id) && buddies[id].blocked? }
 				group_chat.leave
@@ -285,7 +285,7 @@ class Session
 				if e.packet.empty? || e.packet.all? { |id| buddies.has_key?(id) && buddies[id].online? }
 					e.buddy.send_packet [:groupchat, :join], group_chat.id
 
-					fire :group_chat_join, group_chat: group_chat
+					fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
 				else
 					e.packet.each {|p|
 						buddy = buddies.add_temporary(p)
@@ -294,7 +294,7 @@ class Session
 							if e.packet.all? { |id| buddies[id].online? }
 								e.buddy.send_packet [:groupchat, :join], group_chat.id
 
-								fire :group_chat_join, group_chat: group_chat
+								fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
 							end
 
 							buddy.send_packet [:groupchat, :is_participating], group_chat.id
@@ -327,7 +327,7 @@ class Session
 		end
 
 		on_packet :groupchat, :invited do |e|
-			return unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = group_chats[e.packet.id]
 
 			unless (buddy = buddies[e.packet.to_s]) && buddy.online?
 				buddy = buddies.add_temporary(e.packet.to_s)
@@ -343,7 +343,7 @@ class Session
 		end
 
 		on_packet :groupchat, :join do |e|
-			return unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = group_chats[e.packet.id]
 
 			group_chat.each {|participant|
 				participant.send_packet [:groupchat, :invited], group_chat.id, e.buddy.id
@@ -353,13 +353,13 @@ class Session
 		end
 
 		on_packet :groupchat, :leave do |e|
-			return unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = group_chats[e.packet.id]
 
 			fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy, reason: e.reason
 		end
 
 		on_packet :groupchat, :message do |e|
-			return unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = group_chats[e.packet.id]
 
 			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, message: e.packet.to_str
 		end
@@ -385,7 +385,7 @@ class Session
 			e.group_chat.delete(e.buddy)
 			e.buddy.group_chats.delete(e.group_chat.id)
 
-			if e.group_chat.empty?
+			if e.group_chat.empty? && group_chats.has_key?(e.group_chat)
 				group_chats.destroy e.group_chat.id
 			end
 		end

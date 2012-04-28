@@ -277,10 +277,14 @@ class Torchatd
 		elsif what == :invite
 			send_everyone "#{buddy.id} GROUPCHAT_INVITE #{group_chat.id}"
 		elsif what == :join
-			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id} #{args.first.id}"
+			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id}#{" #{args.first.id}" if args.first}"
+		elsif what == :joined
+			send_everyone "GROUPCHAT_JOINED #{group_chat.id}"
 			send_everyone "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.map(&:id).join ' '}"
 		elsif what == :leave
-			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id} #{args.first.id}"
+			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id}#{" #{args.first.id}" if args.first}"
+		elsif what == :left
+			send_everyone "GROUPCHAT_LEFT #{group_chat.id} #{args.first}"
 		elsif what == :message
 			send_everyone "#{buddy.id} GROUPCHAT_MESSAGE #{group_chat.id} #{args.first}"
 		elsif what == :destroy
@@ -432,9 +436,11 @@ EM.run {
 			end
 
 			s.on :group_chat_join do |e|
-				next unless e.buddy
-
-				d.group_chat :join, e.group_chat, e.buddy, e.invited_by
+				if e.buddy
+					d.group_chat :join, e.group_chat, e.buddy, e.invited_by
+				else
+					d.group_chat :joined, e.group_chat, nil, e.invited_by
+				end
 			end
 
 			s.on :group_chat_message do |e|
@@ -442,12 +448,14 @@ EM.run {
 			end
 
 			s.on :group_chat_leave do |e|
-				next unless e.buddy
-
-				d.group_chat :leave, e.group_chat, e.buddy, e.reason
+				if e.buddy
+					d.group_chat :leave, e.group_chat, e.buddy, e.reason
+				else
+					d.group_chat :left, e.group_chat, nil, e.reason
+				end
 			end
 
-			s.on :group_chat_destroy do
+			s.on :group_chat_destroy do |e|
 				d.group_chat :destroy, e.group_chat
 			end
 

@@ -85,6 +85,8 @@ def self.extensions
 	}
 end
 
+# when defining a packet remember to ALWAYS call super() if you redefine the constructor
+# or bad stuff will happen (like having connection timeouts for seemingly random reasons).
 def self.define_packet (name, &block)
 	raise ArgumentError, "#{name} already exists" if has_packet?(@extension, name)
 
