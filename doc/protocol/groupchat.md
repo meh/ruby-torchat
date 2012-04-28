@@ -52,16 +52,6 @@ the implementation of redundancy and permanent groupchats.
 > groupchat_invite 6f012391-883d-4f4f-8d54-52c4227b3ac9 noredundancy
 ```
 
-### Groupchat Get Participants
-
-This packet is used to ask the list of participants for a given buddy, useful to keeping
-the buddies in a groupchat synced.
-
-```
-> groupchat_participants? 6f012391-883d-4f4f-8d54-52c4227b3ac9
-< groupchat_participants 6f012391-883d-4f4f-8d54-52c4227b3ac9 bgboqr35plm637wp
-```
-
 ### Groupchat Participants
 
 This packet is used to tell the invited person the current participants, it contains the

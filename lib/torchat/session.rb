@@ -260,14 +260,6 @@ class Session
 			fire :group_chat_invite, group_chat: group_chat, buddy: e.buddy
 		end
 
-		on_packet :groupchat, :get_participants do |e|
-			if group_chat = group_chats[e.packet.id]
-				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.map(&:id)
-			else
-				e.buddy.send_packet [:groupchat, :not_participating], e.packet.id
-			end
-		end
-
 		on_packet :groupchat, :is_participating do |e|
 			if group_chats[e.packet.id]
 				e.buddy.send_packet [:groupchat, :participating]
