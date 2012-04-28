@@ -60,7 +60,7 @@ class Event
 		@data[id] if @data.has_key? id
 	end
 	
-	def respond_to_missing? (id)
+	def respond_to_missing? (*)
 		true
 	end
 
@@ -70,6 +70,10 @@ class Event
 
 	def stop!;    @stop = true; end
 	def stopped?; @stop;        end
+
+	def inspect
+		"#<Torchat::Event(#{name}): #{@data.inspect}>"
+	end
 end
 
 end; end

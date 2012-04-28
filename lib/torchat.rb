@@ -79,8 +79,8 @@ class Torchat
 		super
 	end
 
-	def respond_to_missing? (id)
-		@session.respond_to? id
+	def respond_to_missing? (id, include_private = false)
+		@session.respond_to? id, include_private
 	end
 
 	def start (&block)

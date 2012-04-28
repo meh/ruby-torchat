@@ -207,11 +207,16 @@ class Torchatd
 		when :groupchats
 			connection.send_response "GROUPCHATS #{profile.group_chats.keys.join(' ')}"
 
+		when :groupchat_participants
+			if group_chat = profile.group_chats[rest]
+				connection.send_response "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.map(&:id).join ' '}"
+			end
+
 		when :groupchat_invite
 			group_chat, buddy = rest.split ' '
 
 			if buddy
-				if buddy = profile.buddies[buddy] && group_chat = profile.group_chats[group_chat]
+				if (buddy = profile.buddies[buddy]) && (group_chat = profile.group_chats[group_chat])
 					group_chat.invite(buddy)
 				end
 			else
@@ -270,6 +275,7 @@ class Torchatd
 			send_everyone "#{buddy.id} GROUPCHAT_INVITE #{group_chat.id}"
 		elsif what == :join
 			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id} #{args.first}"
+			send_everyone "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.map(&:id).join ' '}"
 		elsif what == :leave
 			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id} #{args.first}"
 		elsif what == :message
@@ -407,7 +413,7 @@ EM.run {
 			end
 
 			s.on_packet do |e|
-				d.received_packet e.packet
+				d.received_packet e.packet unless e.packet.extension
 			end
 
 			s.on :typing do |e|

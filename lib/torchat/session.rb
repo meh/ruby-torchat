@@ -137,7 +137,7 @@ class Session
 		end
 
 		on_packet :message do |e|
-			fire :message, buddy: e.buddy, content: e.packet.to_str
+			fire :message, buddy: e.buddy, message: e.packet.to_str
 		end
 
 		on_packet :filename do |e|
@@ -359,7 +359,7 @@ class Session
 		on_packet :groupchat, :message do |e|
 			return unless group_chat = group_chats[e.packet.id]
 
-			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, content: e.packet.to_str
+			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, message: e.packet.to_str
 		end
 
 		on :disconnection do |e|

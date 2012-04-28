@@ -59,8 +59,8 @@ define_extension :groupchat do
 			super
 		end
 
-		def respond_to_missing? (id)
-			@internal.respond_to? id
+		def respond_to_missing? (id, include_private = false)
+			@internal.respond_to? id, include_private
 		end
 
 		def pack

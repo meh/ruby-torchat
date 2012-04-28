@@ -40,8 +40,8 @@ class GroupChat
 		super
 	end
 
-	def respond_to_missing? (id)
-		@participants.respond_to? id
+	def respond_to_missing? (id, include_private = false)
+		@participants.respond_to? id, include_private
 	end
 
 	def on (what, &block)
