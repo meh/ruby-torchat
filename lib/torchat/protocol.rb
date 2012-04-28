@@ -149,7 +149,7 @@ class Packet
 				define_method :extension do extension end
 
 				define_singleton_method :inspect do
-					"#<Torchat::Packet: #{type}#{", #{extension}" if extension}>"
+					"#<Torchat::Packet: #{"#{extension}_" if extension}#{type}>"
 				end
 			}
 		}
@@ -198,7 +198,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]>"
+				"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}]>"
 			end
 		elsif range.end == 1
 			if range.begin == 0
@@ -224,7 +224,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]#{": #{@internal.inspect}" if @internal}>"
+				"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}]#{": #{@internal.inspect}" if @internal}>"
 			end
 		else
 			define_method :initialize do |*args|
@@ -234,7 +234,7 @@ class Packet
 			end
 
 			define_method :inspect do
-				"#<Torchat::Packet[#{type}#{", #{extension}" if extension}]: #{@internal.map(&:inspect).join(', ')}>"
+				"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}]: #{@internal.map(&:inspect).join(', ')}>"
 			end
 		end
 	end

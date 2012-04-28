@@ -204,6 +204,36 @@ class Torchatd
 		when :allow
 			profile.buddies[rest].allow!
 
+		when :groupchats
+			connection.send_response "GROUPCHATS #{profile.group_chats.keys.join(' ')}"
+
+		when :groupchat_invite
+			group_chat, buddy = rest.split ' '
+
+			if buddy
+				if buddy = profile.buddies[buddy] && group_chat = profile.group_chats[group_chat]
+					group_chat.invite(buddy)
+				end
+			else
+				if buddy = profile.buddies[group_chat]
+					profile.group_chats.create.invite(buddy)
+				end
+			end
+
+		when :groupchat_leave
+			group_chat, reason = rest.split ' ', 2
+
+			if group_chat = profile.group_chats[group_chat]
+				group_chat.leave reason
+			end
+
+		when :groupchat_message
+			group_chat, message = rest.split ' ', 2
+
+			if group_chat = profile.group_chats[group_chat]
+				group_chat.send_message message
+			end
+
 		else
 			connection.send_response "UNIMPLEMENTED #{command}"
 		end
@@ -230,6 +260,22 @@ class Torchatd
 			send_everyone "#{packet.from.id} DESCRIPTION #{packet}"
 		elsif packet.type == :remove_me
 			send_everyone "#{packet.from.id} REMOVE"
+		end
+	end
+
+	def group_chat (what, group_chat, buddy = nil, *args)
+		if what == :create
+			send_everyone "GROUPCHAT_CREATE #{group_chat.id}"
+		elsif what == :invite
+			send_everyone "#{buddy.id} GROUPCHAT_INVITE #{group_chat.id}"
+		elsif what == :join
+			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id} #{args.first}"
+		elsif what == :leave
+			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id} #{args.first}"
+		elsif what == :message
+			send_everyone "#{buddy.id} GROUPCHAT_MESSAGE #{group_chat.id} #{args.first}"
+		elsif what == :destroy
+			send_everyone "GROUPCHAT_DESTROY #{group_chat.id}"
 		end
 	end
 
@@ -366,6 +412,34 @@ EM.run {
 
 			s.on :typing do |e|
 				d.typing e.buddy, e.mode
+			end
+
+			s.on :group_chat_create do |e|
+				d.group_chat :create, e.group_chat
+			end
+
+			s.on :group_chat_invite do |e|
+				d.group_chat :invite, e.group_chat, e.buddy
+			end
+
+			s.on :group_chat_join do |e|
+				next unless e.buddy
+
+				d.group_chat :join, e.group_chat, e.buddy, e.invited_by
+			end
+
+			s.on :group_chat_message do |e|
+				d.group_chat :message, e.group_chat, e.buddy, e.message
+			end
+
+			s.on :group_chat_leave do |e|
+				next unless e.buddy
+
+				d.group_chat :leave, e.group_chat, e.buddy, e.reason
+			end
+
+			s.on :group_chat_destroy do
+				d.group_chat :destroy, e.group_chat
 			end
 
 			s.online! if options[:online]

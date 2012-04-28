@@ -35,11 +35,11 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{modes.join ' '}" unless modes.empty?}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}}](#{id})#{": #{modes.join ' '}" unless modes.empty?}>"
 		end
 	end
 
-	define_packet :participants? do
+	define_packet :get_participants do
 		define_unpacker_for 0
 	end
 
@@ -68,11 +68,11 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{join ' '}" unless empty?}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})#{": #{join ' '}" unless empty?}>"
 		end
 	end
 
-	define_packet :participating? do
+	define_packet :is_participanting do
 		define_unpacker_for 1
 
 		def id
@@ -80,11 +80,11 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})>"
 		end
 	end
 
-	define_packet :participating! do
+	define_packet :participating do
 		define_unpacker_for 1
 
 		def id
@@ -92,11 +92,11 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})>"
 		end
 	end
 
-	define_packet :not_participating! do
+	define_packet :not_participating do
 		define_unpacker_for 1
 
 		def id
@@ -104,7 +104,7 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})>"
 		end
 	end
 
@@ -116,7 +116,7 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})>"
 		end
 	end
 
@@ -132,7 +132,7 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id})#{": #{reason.inspect}" if reason}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})#{": #{reason.inspect}" if reason}>"
 		end
 	end
 
@@ -157,7 +157,7 @@ define_extension :groupchat do
 		alias to_str to_s
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id}): #{to_s}>"
 		end
 	end
 
@@ -183,7 +183,7 @@ define_extension :groupchat do
 		alias to_str to_s
 
 		def inspect
-			"#<Torchat::Packet[#{type}#{", #{extension}" if extension}](#{id}): #{to_s.inspect}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id}): #{to_s.inspect}>"
 		end
 	end
 end

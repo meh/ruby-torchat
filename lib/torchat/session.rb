@@ -247,32 +247,32 @@ class Session
 			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
-		# group_chat implementation
+		# groupchat extension support
 		on_packet :groupchat, :invite do |e|
 			next if group_chats.has_key? e.packet.id
 
 			group_chat = group_chats.create(e.packet.id)
 			group_chat.invited_by e.buddy
-			group_chat.participants.add e.buddy
+			group_chat.add e.buddy
 
 			e.buddy.group_chats.push group_chat
 
-			fire :group_chat_invitation, group_chat: group_chat, invitor: e.buddy
+			fire :group_chat_invite, group_chat: group_chat, buddy: e.buddy
 		end
 
-		on_packet :groupchat, :participants? do |e|
+		on_packet :groupchat, :get_participants do |e|
 			if group_chat = group_chats[e.packet.id]
-				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.participants
+				e.buddy.send_packet [:groupchat, :participants], e.packet.id, group_chat.map(&:id)
 			else
-				e.buddy.send_packet [:groupchat, :not_participating!], e.packet.id
+				e.buddy.send_packet [:groupchat, :not_participating], e.packet.id
 			end
 		end
 
-		on_packet :groupchat, :participating? do |e|
+		on_packet :groupchat, :is_participating do |e|
 			if group_chats[e.packet.id]
-				e.buddy.send_packet [:groupchat, :participating!]
+				e.buddy.send_packet [:groupchat, :participating]
 			else
-				e.buddy.send_packet [:groupchat, :not_participating!]
+				e.buddy.send_packet [:groupchat, :not_participating]
 			end
 		end
 
@@ -297,15 +297,15 @@ class Session
 								fire :group_chat_join, group_chat: group_chat
 							end
 
-							buddy.send_packet [:groupchat, :participating?], group_chat.id
+							buddy.send_packet [:groupchat, :is_participating], group_chat.id
 
-							participating = buddy.on_packet :groupchat_participating! do |e|
-								group_chat.participants.add e.buddy
+							participating = buddy.on_packet :groupchat, :participating do |e|
+								group_chat.add e.buddy
 
 								e.remove!
 							end
 
-							not_participating = buddy.on_packet :groupchat_not_participating! do |e|
+							not_participating = buddy.on_packet :groupchat, :not_participating do |e|
 								group_chat.leave
 
 								e.remove!
@@ -343,7 +343,7 @@ class Session
 		on_packet :groupchat, :join do |e|
 			return unless group_chat = group_chats[e.packet.id]
 
-			group_chat.participants.each {|participant|
+			group_chat.each {|participant|
 				participant.send_packet [:groupchat, :invited], group_chat.id, e.buddy.id
 			}
 
@@ -356,6 +356,12 @@ class Session
 			fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy, reason: e.reason
 		end
 
+		on_packet :groupchat, :message do |e|
+			return unless group_chat = group_chats[e.packet.id]
+
+			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, content: e.packet.to_str
+		end
+
 		on :disconnection do |e|
 			e.buddy.group_chats.each {|group_chat|
 				fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
@@ -365,7 +371,7 @@ class Session
 		on :group_chat_join do |e|
 			next unless e.buddy
 
-			e.group_chat.participants.add(e.buddy)
+			e.group_chat.add(e.buddy)
 			e.buddy.group_chats.push(e.group_chat)
 			e.buddy.group_chats.uniq!
 		end
@@ -373,8 +379,12 @@ class Session
 		on :group_chat_leave do |e|
 			next unless e.buddy
 
-			e.group_chat.participants.delete(e.buddy)
+			e.group_chat.delete(e.buddy)
 			e.buddy.group_chats.delete(e.group_chat)
+
+			if e.group_chat.empty?
+				group_chats.destroy e.group_chat.id
+			end
 		end
 
 		yield self if block_given?

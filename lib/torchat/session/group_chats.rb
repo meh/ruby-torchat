@@ -43,11 +43,19 @@ class GroupChats < Hash
 	private :[]=
 
 	def create (id = Torchat.new_cookie)
-		self[id] = GroupChat.new(session, id)
+		GroupChat.new(session, id).tap {|group_chat|
+			self[id] = group_chat
+
+			session.fire :group_chat_create, group_chat: group_chat
+		}
 	end
 
-	def left (id)
-		delete self[id].id
+	def destroy (id)
+		self[id].tap {|group_chat|
+			delete group_chat.id
+
+			session.fire :group_chat_destroy, group_chat: group_chat
+		}
 	end
 
 	private :delete

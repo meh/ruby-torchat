@@ -34,6 +34,16 @@ class GroupChat
 		@participants = Participants.new(self)
 	end
 
+	def method_missing (id, *args, &block)
+		return @participants.__send__ id, *args, &block if @participants.respond_to? id
+
+		super
+	end
+
+	def respond_to_missing? (id)
+		@participants.respond_to? id
+	end
+
 	def on (what, &block)
 		session.on what do |e|
 			block.call e if e.group_chat == self
@@ -55,6 +65,8 @@ class GroupChat
 
 		return unless buddy.online?
 
+		return if participants.member? buddy
+
 		buddy.send_packet [:groupchat, :invite], id, modes
 		buddy.send_packet [:groupchat, :participants], id, participants.map(&:id)
 
@@ -63,14 +75,14 @@ class GroupChat
 
 	def left?; @left; end
 
-	def leave
+	def leave (reason = nil)
 		@left = true
 
 		participants.each {|buddy|
-			buddy.send_packet [:groupchat, :leave], id
+			buddy.send_packet [:groupchat, :leave], id, reason
 		}
 
-		session.group_chats.left id
+		session.group_chats.destroy id
 	end
 
 	def send_message (message)

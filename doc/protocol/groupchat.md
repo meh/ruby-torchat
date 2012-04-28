@@ -27,6 +27,8 @@ To exit the groupchat a *leave* packet is sent to every participant present in t
 
 When a participant disconnects it's seen as leaving the groupchat.
 
+When there are no more participants in a groupchat that groupchat is destroyed.
+
 Packets
 -------
 Following is a list and description of the packets in the groupchat extension.
@@ -50,7 +52,7 @@ the implementation of redundancy and permanent groupchats.
 > groupchat_invite 6f012391-883d-4f4f-8d54-52c4227b3ac9 noredundancy
 ```
 
-### Groupchat Participants?
+### Groupchat Get Participants
 
 This packet is used to ask the list of participants for a given buddy, useful to keeping
 the buddies in a groupchat synced.
@@ -70,7 +72,7 @@ sending the packet.
 > groupchat_participants 6f012391-883d-4f4f-8d54-52c4227b3ac9 bgboqr35plm637wp
 ```
 
-### Groupchat Participating?
+### Groupchat Is Participating
 
 This packet is sent to ask someone if he's participating in a groupchat, it contains the id of
 the groupchat.
@@ -80,7 +82,7 @@ the groupchat.
 < groupchat_participating!
 ```
 
-### Groupchat Participating!
+### Groupchat Participating
 
 This packet is sent as answer to the *particpating?* packet and is used to answer that we
 are participating, it contains the id of the groupchat.
@@ -91,7 +93,7 @@ are participating, it contains the id of the groupchat.
 > groupchat_participating! 6f012391-883d-4f4f-8d54-52c4227b3ac9
 ```
 
-### Groupchat Not Participating!
+### Groupchat Not Participating
 
 This packet is sent as answer to the *participating?* packet and is used to answer that we
 are not participating, it contains the id of the groupchat.

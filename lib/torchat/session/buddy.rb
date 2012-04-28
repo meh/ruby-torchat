@@ -265,6 +265,8 @@ class Buddy
 
 		@last_received = @verified = @ready = @connecting = @connected = false
 
+    @group_chats.clear
+
 		disconnect
 
 		session.fire :disconnection, buddy: self
