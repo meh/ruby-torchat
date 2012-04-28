@@ -277,10 +277,10 @@ class Torchatd
 		elsif what == :invite
 			send_everyone "#{buddy.id} GROUPCHAT_INVITE #{group_chat.id}"
 		elsif what == :join
-			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id} #{args.first}"
+			send_everyone "#{buddy.id} GROUPCHAT_JOIN #{group_chat.id} #{args.first.id}"
 			send_everyone "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.map(&:id).join ' '}"
 		elsif what == :leave
-			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id} #{args.first}"
+			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id} #{args.first.id}"
 		elsif what == :message
 			send_everyone "#{buddy.id} GROUPCHAT_MESSAGE #{group_chat.id} #{args.first}"
 		elsif what == :destroy

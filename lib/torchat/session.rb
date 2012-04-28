@@ -255,7 +255,7 @@ class Session
 			group_chat.invited_by e.buddy
 			group_chat.add e.buddy
 
-			e.buddy.group_chats.push group_chat
+			e.buddy.group_chats[group_chat.id] = group_chat
 
 			fire :group_chat_invite, group_chat: group_chat, buddy: e.buddy
 		end
@@ -334,6 +334,8 @@ class Session
 
 				buddy.on :ready do |e|
 					fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
+
+					e.remove!
 				end
 			else
 				fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
@@ -363,8 +365,10 @@ class Session
 		end
 
 		on :disconnection do |e|
-			e.buddy.group_chats.each {|group_chat|
-				fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
+			e.buddy.group_chats.each_value {|group_chat|
+				if group_chat.member? e.buddy
+					fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
+				end
 			}
 		end
 
@@ -372,15 +376,14 @@ class Session
 			next unless e.buddy
 
 			e.group_chat.add(e.buddy)
-			e.buddy.group_chats.push(e.group_chat)
-			e.buddy.group_chats.uniq!
+			e.buddy.group_chats[e.group_chat.id] = e.group_chat
 		end
 
 		on :group_chat_leave do |e|
 			next unless e.buddy
 
 			e.group_chat.delete(e.buddy)
-			e.buddy.group_chats.delete(e.group_chat)
+			e.buddy.group_chats.delete(e.group_chat.id)
 
 			if e.group_chat.empty?
 				group_chats.destroy e.group_chat.id

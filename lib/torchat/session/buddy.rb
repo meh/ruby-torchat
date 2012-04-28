@@ -66,7 +66,7 @@ class Buddy
 		@avatar      = Avatar.new
 		@client      = Client.new
 		@supports    = []
-		@group_chats = []
+		@group_chats = {}
 
 		@tries = 0
 
@@ -253,7 +253,8 @@ class Buddy
 		@incoming.close_connection_after_writing if @incoming
 		@outgoing.close_connection_after_writing if @outgoing
 
-		@outgoing = @incoming = nil
+		@outgoing = nil
+		@incoming = nil
 
 		disconnected
 	end
@@ -263,13 +264,16 @@ class Buddy
 	def disconnected
 		return if disconnected?
 
-		@last_received = @verified = @ready = @connecting = @connected = false
+		session.fire :disconnection, buddy: self
 
-    @group_chats.clear
+		@last_received = nil
+		@verified      = false
+		@ready         = false
+		@connecting    = false
+		@connected     = false
+		@group_chats   = {}
 
 		disconnect
-
-		session.fire :disconnection, buddy: self
 	end
 
 	def inspect
