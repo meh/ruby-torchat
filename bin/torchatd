@@ -135,6 +135,9 @@ class Torchatd
 		end
 
 		case command.downcase.to_sym
+		when :whoami
+			connection.send_response "WHOAMI #{profile.id}"
+
 		when :list
 			connection.send_response "LIST #{profile.buddies.keys.join(' ')}"
 
