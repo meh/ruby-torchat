@@ -384,7 +384,9 @@ class Session
 
 			e.group_chat.delete(e.buddy)
 			e.buddy.group_chats.delete(e.group_chat.id)
+		end
 
+		after :group_chat_leave do |e|
 			if e.group_chat.empty? && group_chats.has_key?(e.group_chat)
 				group_chats.destroy e.group_chat.id
 			end
