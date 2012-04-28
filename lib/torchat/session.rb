@@ -356,7 +356,7 @@ class Session
 			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, message: e.packet.to_str
 		end
 
-		on :disconnection do |e|
+		before :disconnection do |e|
 			e.buddy.group_chats.each_value {|group_chat|
 				if group_chat.member? e.buddy
 					fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
