@@ -255,8 +255,6 @@ class Session
 			group_chat.invited_by e.buddy
 			group_chat.add e.buddy
 
-			e.buddy.group_chats[group_chat.id] = group_chat
-
 			fire :group_chat_invite, group_chat: group_chat, buddy: e.buddy
 		end
 
@@ -398,14 +396,8 @@ class Session
 			}
 		end
 
-		on :group_chat_join do |e|
-			next unless e.buddy
-
-			e.buddy.group_chats[e.group_chat.id] = e.group_chat
-		end
-
 		after :group_chat_leave do |e|
-			if e.group_chat.empty? && group_chats.has_key?(e.group_chat)
+			if e.group_chat.empty? && group_chats.has_key?(e.group_chat.id)
 				group_chats.destroy e.group_chat.id
 			end
 		end

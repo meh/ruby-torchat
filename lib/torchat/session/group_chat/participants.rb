@@ -34,7 +34,7 @@ class Participants < Hash
 		if buddy = group_chat.session.buddies[id]
 			buddy.group_chats.add group_chat
 
-			push Participant.new(buddy, invited_by)
+			self[buddy.id] = Participant.new(buddy, invited_by)
 		end
 	end
 

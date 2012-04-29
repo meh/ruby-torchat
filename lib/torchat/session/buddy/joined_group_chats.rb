@@ -37,7 +37,7 @@ class JoinedGroupChats < Hash
 	end
 
 	def delete (id)
-		delete id.respond_to? :id ? id.id : id
+		super(id.respond_to?(:id) ? id.id : id)
 	end
 
 	private :[]=

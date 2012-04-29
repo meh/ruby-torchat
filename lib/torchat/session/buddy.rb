@@ -285,4 +285,4 @@ end
 
 end; end
 
-require 'torchat/session/buddy/joined_group_chat'
+require 'torchat/session/buddy/joined_group_chats'

@@ -35,7 +35,7 @@ define_extension :groupchat do
 		end
 
 		def inspect
-			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}}](#{id})#{": #{modes.join ' '}" unless modes.empty?}>"
+			"#<Torchat::Packet[#{"#{extension}_" if extension}#{type}](#{id})#{": #{modes.join ' '}" unless modes.empty?}>"
 		end
 	end
 
