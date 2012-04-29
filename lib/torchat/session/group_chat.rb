@@ -32,6 +32,7 @@ class GroupChat
 		@modes   = modes.flatten.uniq.compact.map(&:to_sym)
 
 		@participants = Participants.new(self)
+		@joining      = true
 	end
 
 	def method_missing (id, *args, &block)
@@ -43,6 +44,10 @@ class GroupChat
 	def respond_to_missing? (id, include_private = false)
 		@participants.respond_to? id, include_private
 	end
+
+	def joining?; @joining;         end
+	def joined?;  !joining?;        end
+	def joined!;  @joining = false; end
 
 	def on (what, &block)
 		session.on what do |e|
@@ -65,7 +70,7 @@ class GroupChat
 
 		return unless buddy.online?
 
-		return if participants.member? buddy
+		return if participants.find { |p| p.id == buddy.id }
 
 		buddy.send_packet [:groupchat, :invite], id, modes
 		buddy.send_packet [:groupchat, :participants], id, participants.map(&:id)
@@ -76,6 +81,8 @@ class GroupChat
 	def left?; @left; end
 
 	def leave (reason = nil)
+		return if left?
+
 		@left = true
 
 		participants.each {|buddy|

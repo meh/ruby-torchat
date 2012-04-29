@@ -251,7 +251,7 @@ class Session
 		on_packet :groupchat, :invite do |e|
 			next if group_chats.has_key? e.packet.id
 
-			group_chat = group_chats.create(e.packet.id)
+			group_chat = group_chats.create(e.packet.id, false)
 			group_chat.invited_by e.buddy
 			group_chat.add e.buddy
 
@@ -269,61 +269,81 @@ class Session
 		end
 
 		on_packet :groupchat, :participants do |e|
-			next unless group_chat = group_chats[e.packet.id]
+			require 'ap'
+			next unless group_chat = group_chats[e.packet.id] and !group_chat.joining?
+
+			participants = group_chat.participants.map(&:id) - e.packet.to_a
+			participants.reject! { |participant| participant == id || participant == e.buddy.id }
+
+			e.buddy.send_packet [:groupchat, :participants], group_chat.id, participants
+		end
+
+		on_packet :groupchat, :participants do |e|
+			next unless group_chat = group_chats[e.packet.id] and group_chat.joining? and group_chat.invited_by == e.buddy
+
+			if e.packet.empty?
+				group_chat.joined!
+
+				e.buddy.send_packet [:groupchat, :join], group_chat.id
+
+				fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
+
+				group_chat.participants.each {|participant|
+					fire :group_chat_join, group_chat: group_chat, buddy: ~participant
+				}
+
+				next
+			end
+			
+			puts e.packet.empty?.inspect
 
 			if e.packet.any? { |id| buddies.has_key?(id) && buddies[id].blocked? }
 				group_chat.leave
-			else
-				if e.packet.empty? || e.packet.all? { |id| buddies.has_key?(id) && buddies[id].online? }
-					e.buddy.send_packet [:groupchat, :join], group_chat.id
 
-					fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
-
-					e.packet.each {|id|
-						fire :group_chat_join, group_chat: group_chat, buddy: buddies[id]
-					}
-				else
-					e.packet.each {|p|
-						buddy = buddies.add_temporary(p)
-
-						buddy.when :ready do
-							if e.packet.all? { |id| buddies[id].online? }
-								e.buddy.send_packet [:groupchat, :join], group_chat.id
-
-								fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
-
-								e.packet.each {|id|
-									fire :group_chat_join, group_chat: group_chat, buddy: buddies[id]
-								}
-							end
-
-							buddy.send_packet [:groupchat, :is_participating], group_chat.id
-
-							participating = buddy.on_packet :groupchat, :participating do |e|
-								group_chat.add e.buddy
-
-								e.remove!
-							end
-
-							not_participating = buddy.on_packet :groupchat, :not_participating do |e|
-								group_chat.leave
-
-								e.remove!
-							end
-
-							# avoid possible memory leak, I don't do this inside both callbacks
-							# because a bad guy could not send either of those packets and there
-							# would be a leak anyway
-							set_timeout 10 do
-								participating.remove!
-								not_participating.remove!
-							end
-
-							e.remove!
-						end
-					}
-				end
+				next
 			end
+
+			if e.packet.all? { |id| buddies.has_key?(id) && buddies[id].online? }
+				e.packet.each {|id|
+					group_chat.add buddies[id]
+				}
+
+				e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.map(&:id)
+
+				next
+			end
+
+			e.packet.each {|p|
+				next if (buddy = buddies.add_temporary(p)).online?
+
+				buddy.when :ready do
+					buddy.send_packet [:groupchat, :is_participating], group_chat.id
+
+					participating = buddy.on_packet :groupchat, :participating do |e|
+						next if group_chat.left?
+
+						group_chat.add e.buddy
+
+						if e.packet.all? { |id| buddies[id].online? }
+							e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.map(&:id)
+						end
+					end
+
+					not_participating = buddy.on_packet :groupchat, :not_participating do |e|
+						group_chat.leave
+					end
+
+					# avoid possible memory leak, I don't do this inside both callbacks
+					# because a bad guy could not send either of those packets and there
+					# would be a leak anyway
+					set_timeout 10 do
+						participating.remove!
+						not_participating.remove!
+					end
+
+					e.remove!
+				end
+			}
 		end
 
 		on_packet :groupchat, :invited do |e|
@@ -333,11 +353,15 @@ class Session
 				buddy = buddies.add_temporary(e.packet.to_s)
 
 				buddy.on :ready do |e|
+					group_chat.participants.add buddy, e.buddy
+
 					fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
 
 					e.remove!
 				end
 			else
+				group_chat.participants.add buddy, e.buddy
+
 				fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
 			end
 		end
@@ -345,7 +369,11 @@ class Session
 		on_packet :groupchat, :join do |e|
 			next unless group_chat = group_chats[e.packet.id]
 
-			group_chat.each {|participant|
+			group_chat.add e.buddy
+
+			group_chat.participants.each {|participant|
+				next if participant.id == e.buddy.id
+
 				participant.send_packet [:groupchat, :invited], group_chat.id, e.buddy.id
 			}
 
@@ -353,9 +381,9 @@ class Session
 		end
 
 		on_packet :groupchat, :leave do |e|
-			next unless group_chat = group_chats[e.packet.id]
+			next unless group_chat = e.buddy.group_chats[e.packet.id]
 
-			fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy, reason: e.reason
+			group_chat.leave e.reason
 		end
 
 		on_packet :groupchat, :message do |e|
@@ -366,24 +394,14 @@ class Session
 
 		before :disconnection do |e|
 			e.buddy.group_chats.each_value {|group_chat|
-				if group_chat.member? e.buddy
-					fire :group_chat_leave, group_chat: group_chat, buddy: e.buddy
-				end
+				group_chat.leave
 			}
 		end
 
 		on :group_chat_join do |e|
 			next unless e.buddy
 
-			e.group_chat.add(e.buddy)
 			e.buddy.group_chats[e.group_chat.id] = e.group_chat
-		end
-
-		on :group_chat_leave do |e|
-			next unless e.buddy
-
-			e.group_chat.delete(e.buddy)
-			e.buddy.group_chats.delete(e.group_chat.id)
 		end
 
 		after :group_chat_leave do |e|

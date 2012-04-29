@@ -20,6 +20,10 @@
 require 'securerandom'
 
 class Torchat
+	if ENV['DEBUG']
+		require 'ap'
+	end
+
 	def self.debug (argument, options = {})
 		return if !ENV['DEBUG'] && !options[:force]
 
@@ -47,7 +51,31 @@ class Torchat
 		$stderr.puts output
 	end
 
+	def self.valid_address? (address)
+		!!address.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}\.onion$/i)
+	end
+
+	def self.valid_id? (id)
+		!!id.match(/^[234567abcdefghijklmnopqrstuvwxyz]{16}$/i)
+	end
+
 	def self.new_cookie
 		SecureRandom.uuid
+	end
+
+	def self.normalize_id (value, return_nil = false)
+		if value.respond_to? :id
+			value = value.id
+		end
+
+		value = value.to_s[/^(.*?)(\.onion)?$/, 1]
+
+		unless valid_id?(value)
+			return if return_nil
+
+			raise ArgumentError, 'the given ID is invalid'
+		end
+
+		value
 	end
 end

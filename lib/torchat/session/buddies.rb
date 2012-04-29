@@ -39,19 +39,19 @@ class Buddies < Hash
 	end
 
 	def [] (name)
-		name = name.id if name.is_a? Buddy
-
-		super(name) || super(name[/^(.*?)(\.onion)?$/, 1]) || find { |a, b| name === b.name }
+		begin
+			super(Torchat.normalize_id(name))
+		rescue ArgumentError
+			find { |a, b| name === b.name }
+		end
 	end
 
 	def []= (name, buddy)
-		name = name.id if name.is_a? Buddy
-
-		unless Tor.valid_address?(name) || Tor.valid_id?(name)
-			name = find { |a, b| name === b.name }.id
+		name = begin
+			Torchat.normalize_id(name)
+		rescue ArgumentError
+			find { |a, b| name === b.name }.id
 		end
-
-		name = name[/^(.*?)(\.onion)?$/, 1]
 
 		super(name, buddy)
 	end

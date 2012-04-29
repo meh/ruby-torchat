@@ -17,36 +17,24 @@
 # along with torchat for ruby. If not, see <http://www.gnu.org/licenses/>.
 #++
 
-require 'torchat/session/group_chat/participant'
+require 'delegate'
 
-class Torchat; class Session; class GroupChat
+class Torchat; class Session; class Buddy
 
-class Participants < Array
-	attr_reader :group_chat
+class Participant < DelegateClass(GroupChat)
+	def initialize (group_chat, buddy)
+		super(group_chat)
 
-	def initialize (group_chat)
-		@group_chat = group_chat
+		@buddy = buddy
 	end
 
-	def add (id, invited_by = nil)
-		return if find { |p| p.id == Torchat.normalize_id(id) }
+	def leave (reason = nil)
+		group_chat.delete(@buddy)
 
-		if buddy = group_chat.session.buddies[id]
-			buddy.group_chats[group_chat.id] = Buddy::GroupChat.new(group_chat, buddy)
-
-			push Participant.new(buddy, invited_by)
-		end
+		group_chat.session.fire :group_chat_leave, group_chat: group_chat, buddy: @buddy, reason: reason
 	end
 
-	def delete (id)
-		delete_if { |p| p.id == Torchat.normalize_id(id) }
-
-		if buddy = group_chat.session.buddies[id]
-			buddy.group_chats.delete(group_chat.id)
-		end
-	end
-
-	private :<<, :push, :[], :[]=
+	alias ~ __getobj__
 end
 
 end; end; end

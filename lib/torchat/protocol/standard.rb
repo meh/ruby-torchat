@@ -48,7 +48,7 @@ define_packet :ping do
 	alias address= id=
 
 	def valid?
-		Tor.valid_id? @id
+		Torchat.valid_id? @id
 	end
 
 	def pack

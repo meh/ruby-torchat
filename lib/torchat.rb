@@ -86,8 +86,6 @@ class Torchat
 	def start (&block)
 		@session = Session.new(@config, &block)
 
-		@session.start
-
 		if @config['buddies']
 			@config['buddies'].each {|id|
 				@session.buddies.add(id)
@@ -96,7 +94,7 @@ class Torchat
 
 		if @buddy_list && File.readable?(@buddy_list)
 			File.open(@buddy_list).lines.each {|line|
-				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
+				whole, id, ali = line.match(/^(.*?)(?: (.*?))?$/).to_a
 
 				@session.buddies.add(id, ali)
 			}
@@ -104,14 +102,19 @@ class Torchat
 
 		if @blocked_buddy_list && File.readable?(@blocked_buddy_list)
 			File.open(@blocked_buddy_list).lines.each {|line|
-				whole, id, ali = line.match(/^(.*?) (.*?)$/).to_a
+				whole, id, ali = line.match(/^(.*?)(?: (.*?))?$/).to_a
 
 				@session.buddies.add_temporary(id, ali).block!
 			}
 		end
+
+		@session.start
 	end
 
 	def stop
+		@session.stop
+		@tor.stop
+
 		if @buddy_list
 			File.open(@buddy_list, 'w') {|f|
 				@session.buddies.each {|id, buddy|
@@ -131,9 +134,6 @@ class Torchat
 				}
 			}
 		end
-
-		@session.stop
-		@tor.stop
 	end
 
 	def buddy_list_at (path)

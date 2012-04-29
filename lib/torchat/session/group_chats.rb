@@ -42,12 +42,14 @@ class GroupChats < Hash
 
 	private :[]=
 
-	def create (id = Torchat.new_cookie)
+	def create (id = Torchat.new_cookie, joined = true)
 		if has_key? id
 			raise ArgumentError, "a groupchat named #{id} already exists"
 		end
 
 		GroupChat.new(session, id).tap {|group_chat|
+			group_chat.joined! if joined
+
 			self[id] = group_chat
 
 			session.fire :group_chat_create, group_chat: group_chat

@@ -22,6 +22,8 @@ require 'eventmachine'
 require 'torchat/session/incoming'
 require 'torchat/session/outgoing'
 
+require 'torchat/session/buddy/group_chat'
+
 class Torchat; class Session
 
 class Buddy
@@ -56,7 +58,7 @@ class Buddy
 	def port; 11009; end
 
 	def initialize (session, id, incoming = nil, outgoing = nil)
-		unless Tor.valid_id?(id)
+		unless Torchat.valid_id?(id)
 			raise ArgumentError, "#{id} is an invalid onion id"
 		end
 

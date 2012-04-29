@@ -161,7 +161,7 @@ class Torchatd
 			end
 
 		when :status
-			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
+			if rest && Torchat.normalize_id(rest, true)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} STATUS #{buddy.status}"
 				end
@@ -181,7 +181,7 @@ class Torchatd
 			end
 
 		when :name
-			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
+			if rest && Torchat.normalize_id(rest, true)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} NAME #{buddy.name}"
 				end
@@ -190,7 +190,7 @@ class Torchatd
 			end
 
 		when :description
-			if rest && (Torchat::Tor.valid_address?(rest) || Torchat::Tor.valid_id?(rest))
+			if rest && Torchat.normalize_id(rest, true)
 				if buddy = profile.buddies[rest]
 					connection.send_response "#{rest} DESCRIPTION #{buddy.description}"
 				end

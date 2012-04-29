@@ -39,10 +39,6 @@ define_extension :groupchat do
 		end
 	end
 
-	define_packet :get_participants do
-		define_unpacker_for 0
-	end
-
 	define_packet :participants do
 		define_unpacker_for 1 .. -1
 
