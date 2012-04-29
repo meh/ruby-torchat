@@ -19,6 +19,8 @@
 
 require 'delegate'
 
+require 'torchat/session/buddy'
+
 class Torchat; class Session; class GroupChat
 
 class Participant < DelegateClass(Buddy)

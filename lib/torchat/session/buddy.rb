@@ -22,8 +22,6 @@ require 'eventmachine'
 require 'torchat/session/incoming'
 require 'torchat/session/outgoing'
 
-require 'torchat/session/buddy/group_chat'
-
 class Torchat; class Session
 
 class Buddy
@@ -68,7 +66,7 @@ class Buddy
 		@avatar      = Avatar.new
 		@client      = Client.new
 		@supports    = []
-		@group_chats = {}
+		@group_chats = JoinedGroupChats.new(self)
 		@tries       = 0
 		@last_try    = nil
 
@@ -272,9 +270,10 @@ class Buddy
 		@ready         = false
 		@connecting    = false
 		@connected     = false
-		@group_chats   = {}
 		@tries         = 0
 		@last_received = nil
+
+		@group_chats.clear
 
 		disconnect
 	end
@@ -285,3 +284,5 @@ class Buddy
 end
 
 end; end
+
+require 'torchat/session/buddy/joined_group_chat'

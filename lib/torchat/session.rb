@@ -272,7 +272,7 @@ class Session
 			require 'ap'
 			next unless group_chat = group_chats[e.packet.id] and !group_chat.joining?
 
-			participants = group_chat.participants.map(&:id) - e.packet.to_a
+			participants = group_chat.participants.keys - e.packet.to_a
 			participants.reject! { |participant| participant == id || participant == e.buddy.id }
 
 			e.buddy.send_packet [:groupchat, :participants], group_chat.id, participants
@@ -288,7 +288,7 @@ class Session
 
 				fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
 
-				group_chat.participants.each {|participant|
+				group_chat.participants.each_value {|participant|
 					fire :group_chat_join, group_chat: group_chat, buddy: ~participant
 				}
 
@@ -308,7 +308,7 @@ class Session
 					group_chat.add buddies[id]
 				}
 
-				e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.map(&:id)
+				e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.keys
 
 				next
 			end
@@ -325,7 +325,7 @@ class Session
 						group_chat.add e.buddy
 
 						if e.packet.all? { |id| buddies[id].online? }
-							e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.map(&:id)
+							e.buddy.send_packet [:groupchat, :participants], group_chat.id, group_chat.participants.keys
 						end
 					end
 
@@ -371,7 +371,7 @@ class Session
 
 			group_chat.add e.buddy
 
-			group_chat.participants.each {|participant|
+			group_chat.participants.each_value {|participant|
 				next if participant.id == e.buddy.id
 
 				participant.send_packet [:groupchat, :invited], group_chat.id, e.buddy.id

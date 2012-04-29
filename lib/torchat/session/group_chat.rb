@@ -19,8 +19,6 @@
 
 require 'forwardable'
 
-require 'torchat/session/group_chat/participants'
-
 class Torchat; class Session
 
 class GroupChat
@@ -73,7 +71,7 @@ class GroupChat
 		return if participants.find { |p| p.id == buddy.id }
 
 		buddy.send_packet [:groupchat, :invite], id, modes
-		buddy.send_packet [:groupchat, :participants], id, participants.map(&:id)
+		buddy.send_packet [:groupchat, :participants], id, participants.keys
 
 		self
 	end
@@ -85,7 +83,7 @@ class GroupChat
 
 		@left = true
 
-		participants.each {|buddy|
+		participants.each_value {|buddy|
 			buddy.send_packet [:groupchat, :leave], id, reason
 		}
 
@@ -93,7 +91,7 @@ class GroupChat
 	end
 
 	def send_message (message)
-		@participants.each {|buddy|
+		participants.each_value {|buddy|
 			buddy.send_packet [:groupchat, :message], id, message
 		}
 	end
@@ -104,3 +102,5 @@ class GroupChat
 end
 
 end; end
+
+require 'torchat/session/group_chat/participants'
