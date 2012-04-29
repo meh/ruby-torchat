@@ -278,6 +278,10 @@ class Session
 					e.buddy.send_packet [:groupchat, :join], group_chat.id
 
 					fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
+
+					e.packet.each {|id|
+						fire :group_chat_join, group_chat: group_chat, buddy: buddies[id]
+					}
 				else
 					e.packet.each {|p|
 						buddy = buddies.add_temporary(p)
@@ -287,6 +291,10 @@ class Session
 								e.buddy.send_packet [:groupchat, :join], group_chat.id
 
 								fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
+
+								e.packet.each {|id|
+									fire :group_chat_join, group_chat: group_chat, buddy: buddies[id]
+								}
 							end
 
 							buddy.send_packet [:groupchat, :is_participating], group_chat.id
