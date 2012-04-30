@@ -68,7 +68,7 @@ class GroupChat
 
 		return unless buddy.online?
 
-		return if participants.find { |p| p.id == buddy.id }
+		return if participants.has_key? buddy.id
 
 		buddy.send_packet [:groupchat, :invite], id, modes
 		buddy.send_packet [:groupchat, :participants], id, participants.keys
