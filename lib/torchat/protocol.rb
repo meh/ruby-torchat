@@ -178,13 +178,10 @@ class Packet
 					end
 				end
 
-				args = range.end != -1 ? data.split(' ', range.end) : data.split(' ')
+				args  = range.end == -1 ? data.split(' ') : data.split(' ', range.end)
+				arity = range.end == -1 ? range.begin .. args.length : range
 
-				if range.end == -1
-					range = range.begin .. args.length
-				end
-
-				unless range === args.length
+				unless arity === args.length
 					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.begin ? range.begin : range.end})"
 				end
 

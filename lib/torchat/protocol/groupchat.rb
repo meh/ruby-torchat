@@ -127,7 +127,7 @@ define_extension :groupchat do
 		end
 
 		def pack
-			super("#{id} #{reason}")
+			super("#{id}#{" #{reason}" if reason}")
 		end
 
 		def inspect

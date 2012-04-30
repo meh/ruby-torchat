@@ -31,9 +31,9 @@ class JoinedGroupChat < DelegateClass(GroupChat)
 	end
 
 	def leave (reason = nil)
-		group_chat.delete(@buddy)
+		delete(@buddy)
 
-		group_chat.session.fire :group_chat_leave, group_chat: group_chat, buddy: @buddy, reason: reason
+		session.fire :group_chat_leave, group_chat: group_chat, buddy: @buddy, reason: reason
 	end
 
 	alias ~ __getobj__

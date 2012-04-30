@@ -267,11 +267,10 @@ class Session
 		end
 
 		on_packet :groupchat, :participants do |e|
-			require 'ap'
 			next unless group_chat = group_chats[e.packet.id] and !group_chat.joining?
 
 			participants = group_chat.participants.keys - e.packet.to_a
-			participants.reject! { |participant| participant == id || participant == e.buddy.id }
+			participants.reject! { |p| p == id || p == e.buddy.id }
 
 			e.buddy.send_packet [:groupchat, :participants], group_chat.id, participants
 		end
@@ -293,8 +292,6 @@ class Session
 				next
 			end
 			
-			puts e.packet.empty?.inspect
-
 			if e.packet.any? { |id| buddies.has_key?(id) && buddies[id].blocked? }
 				group_chat.leave
 

@@ -102,7 +102,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 				end
 			end
 		elsif packet.type == :pong
-			unless buddy = (@session.buddies[@last_ping.id] || @temp_buddy) || !buddy.pinged?
+			unless buddy = (@session.buddies[(@last_ping.id rescue nil)] || @temp_buddy) || !buddy.pinged?
 				close_connection_after_writing
 
 				Torchat.debug 'pong received without a ping'

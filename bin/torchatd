@@ -212,7 +212,7 @@ class Torchatd
 
 		when :groupchat_participants
 			if group_chat = profile.group_chats[rest]
-				connection.send_response "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.map(&:id).join ' '}"
+				connection.send_response "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.participants.keys.join ' '}"
 			end
 
 		when :groupchat_invite
