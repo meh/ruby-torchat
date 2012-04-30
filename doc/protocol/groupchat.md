@@ -11,14 +11,15 @@ After receiving the *participants* packet the invited starts connections to all 
 participants and sends them a packet asking them if they're really participating
 in the groupchat. The contacts that aren't in his buddy list are added as temporary
 buddies. If any of the participants are in his blocked list, a *leave* packet will be
-sent, refusing to join the groupchat, otherwise a *join* packet will be sent.
+sent, refusing to join the groupchat, otherwise a a *participants* packet is sent back
+with the current participants in the groupchat, on receiving that packet the invitor will
+send back a *participants* packet with possible new participants, this packet sending back
+and forth will end when the invitor sends an empty *participants* packet, at that point
+a *join* packet will be sent.
 
-After the *participants* packet an *invited* packet is sent to the already present participants,
+After the *join* packet an *invited* packet will be sent to the already present participants,
 in this way they'll know who invited that person and that that person is going to join the
 groupchat.
-
-If wanted you can ask the current list of participants with the *participants?* packet,
-it will be answered with a *participants* or *not_participating!* packet.
 
 The messaging in the groupchat is simply sent to every other participant from the sender
 of the message.
