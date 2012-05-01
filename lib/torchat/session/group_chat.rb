@@ -97,7 +97,7 @@ class GroupChat
 	end
 
 	def inspect
-		"#<Torchat::GroupChat(#{id})#{"[#{modes.join ' '}]" unless modes.empty?}: #{empty? ? 'empty' : map(&:id).join(' ')}>"
+		"#<Torchat::GroupChat(#{id})#{"[#{modes.join ' '}]" unless modes.empty?}: #{empty? ? 'empty' : keys.join(' ')}>"
 	end
 end
 

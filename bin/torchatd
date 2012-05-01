@@ -282,7 +282,7 @@ class Torchatd
 			send_everyone "GROUPCHAT_JOINED #{group_chat.id}"
 			send_everyone "GROUPCHAT_PARTICIPANTS #{group_chat.id} #{group_chat.participants.keys.join ' '}"
 		elsif what == :leave
-			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id}#{" #{args.first.id}" if args.first}"
+			send_everyone "#{buddy.id} GROUPCHAT_LEAVE #{group_chat.id}#{" #{args.first}" if args.first}"
 		elsif what == :left
 			send_everyone "GROUPCHAT_LEFT #{group_chat.id} #{args.first}"
 		elsif what == :message

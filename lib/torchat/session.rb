@@ -378,7 +378,7 @@ class Session
 		on_packet :groupchat, :leave do |e|
 			next unless group_chat = e.buddy.group_chats[e.packet.id]
 
-			group_chat.leave e.reason
+			group_chat.leave e.packet.reason
 		end
 
 		on_packet :groupchat, :message do |e|
