@@ -23,6 +23,7 @@ require 'torchat/session/event'
 require 'torchat/session/buddies'
 require 'torchat/session/file_transfers'
 require 'torchat/session/group_chats'
+require 'torchat/session/broadcast'
 
 class Torchat
 
@@ -397,6 +398,15 @@ class Session
 			if e.group_chat.empty? && group_chats.has_key?(e.group_chat.id)
 				group_chats.destroy e.group_chat.id
 			end
+		end
+
+		# broadcast support
+		on_packet :broadcast, :message do |e|
+			buddies.each_online {|buddy|
+				buddy.send_packet [:broadcast, :message], e.to_str
+			}
+
+			fire :broadcast, message: Broadcast::Message.parse(e.to_str)
 		end
 
 		yield self if block_given?
