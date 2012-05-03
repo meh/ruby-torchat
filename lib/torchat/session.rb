@@ -23,12 +23,12 @@ require 'torchat/session/event'
 require 'torchat/session/buddies'
 require 'torchat/session/file_transfers'
 require 'torchat/session/group_chats'
-require 'torchat/session/broadcast'
+require 'torchat/session/broadcasts'
 
 class Torchat
 
 class Session
-	attr_reader   :config, :id, :name, :description, :status, :buddies, :file_transfers, :group_chats
+	attr_reader   :config, :id, :name, :description, :status, :buddies, :file_transfers, :group_chats, :broadcasts
 	attr_writer   :client, :version
 	attr_accessor :connection_timeout
 
@@ -44,6 +44,7 @@ class Session
 		@buddies        = Buddies.new(self)
 		@file_transfers = FileTransfers.new(self)
 		@group_chats    = GroupChats.new(self)
+		@broadcasts     = Broadcasts.new(self)
 
 		@callbacks = Hash.new { |h, k| h[k] = [] }
 		@before    = Hash.new { |h, k| h[k] = [] }
@@ -402,11 +403,11 @@ class Session
 
 		# broadcast support
 		on_packet :broadcast, :message do |e|
-			buddies.each_online {|buddy|
-				buddy.send_packet [:broadcast, :message], e.to_str
-			}
+			broadcasts.received e.to_str
+		end
 
-			fire :broadcast, message: Broadcast::Message.parse(e.to_str)
+		set_interval 360 do
+			broadcasts.flush! 360
 		end
 
 		yield self if block_given?

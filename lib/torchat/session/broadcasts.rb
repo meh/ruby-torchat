@@ -18,3 +18,39 @@
 #++
 
 require 'torchat/session/broadcast/message'
+
+class Torchat; class Session
+
+class Broadcasts < Array
+	attr_reader :session
+
+	def initialize (session)
+		@session = session
+	end
+
+	def received? (message)
+		any? { |m| m.to_s == message }
+	end
+
+	def received (message)
+		return if received? message
+
+		message = Broadcast::Message.parse(message)
+
+		push message
+
+		session.buddies.each_online {|buddy|
+			buddy.send_packet [:broadcast, :message], message.to_s
+		}
+
+		session.fire :broadcast, message: message
+	end
+
+	def flush! (time)
+		delete_if {|message|
+			(Time.now.to_i - message.at.to_i) > time
+		}
+	end
+end
+
+end; end
