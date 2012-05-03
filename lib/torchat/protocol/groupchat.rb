@@ -161,7 +161,11 @@ define_extension :groupchat do
 	end
 
 	define_packet :message do
-		define_unpacker_for 2
+		define_unpacker_for 2 do |data|
+			id, data = split ' ', 2
+
+			[id, data.force_encoding('UTF-8')]
+		end
 
 		attr_accessor :id, :content
 
@@ -171,7 +175,7 @@ define_extension :groupchat do
 		end
 
 		def pack
-			super("#{id} #{to_s}")
+			super("#{id} #{to_s.encode('UTF-8')}")
 		end
 
 		def to_s
