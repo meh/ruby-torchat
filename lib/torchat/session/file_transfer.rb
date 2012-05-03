@@ -91,13 +91,23 @@ class FileTransfer
 
 	def add_block (offset, data, md5 = nil)
 		Block.new(self, offset, data, md5).tap {|block|
-			raise ArgumentError, 'the data is invalid' unless block.valid?
+			unless block.valid?
+				from.send_packet :filedata_error, id, offset
+
+				return false
+			end
 
 			if output
 				output.seek(offset)
 				output.write(data)
 			else
 				(@cache ||= []) << block
+			end
+
+			fire :file_transfer_activity, file_transfer: self
+
+			if completion == 100
+				fire :file_transfer_complete, file_transfer: self
 			end
 		}
 	end
@@ -114,6 +124,22 @@ class FileTransfer
 		raise 'there is no input' unless input
 
 		@last = Block.new(self, input.tell, input.read(block_size))
+	end
+
+	def send_next_block
+		if block = next_block
+			to.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+
+			fire :file_transfer_activity, file_transfer: self
+		else
+			fire :file_transfer_complete, file_transfer: self
+		end
+	end
+
+	def send_last_block
+		if block = file_transfer.last_block
+			to.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
+		end
 	end
 
 	def stopped?; @stopped; end

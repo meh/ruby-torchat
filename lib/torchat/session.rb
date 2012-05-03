@@ -143,45 +143,25 @@ class Session
 		end
 
 		on_packet :filename do |e|
-			file_transfer = file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
-
-			fire :file_transfer_start, file_transfer: file_transfer
+			file_transfers.receive(e.packet.id, e.packet.name, e.packet.size, e.buddy)
 		end
 
 		on_packet :filedata do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
-			if file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
-				e.buddy.send_packet :filedata_ok, file_transfer.id, e.packet.offset
-
-				fire :file_transfer_activity, file_transfer: file_transfer
-
-				if file_transfer.completion == 100
-					fire :file_transfer_complete, file_transfer: file_transfer
-				end
-			else
-				e.buddy.send_packet :filedata_error, file_transfer.id, e.packet.offset
-			end
+			file_transfer.add_block(e.packet.offset, e.packet.data, e.packet.md5).valid?
 		end
 
 		on_packet :filedata_ok do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
-			if block = file_transfer.next_block
-				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
-
-				fire :file_transfer_activity, file_transfer: file_transfer
-			else
-				fire :file_transfer_complete, file_transfer: file_transfer
-			end
+			file_transfer.send_next_block
 		end
 
 		on_packet :filedata_error do |e|
 			next unless file_transfer = file_transfers[e.packet.id]
 
-			if block = file_transfer.last_block
-				e.buddy.send_packet :filedata, file_transfer.id, block.offset, block.data, block.md5
-			end
+			file_transfer.send_last_block
 		end
 
 		on_packet :file_stop_sending do |e|
@@ -225,28 +205,18 @@ class Session
 		# typing extension support
 		on_packet :typing_start do |e|
 			e.buddy.typing!
-
-			fire :typing, buddy: e.buddy, mode: :start
 		end
 
 		on_packet :typing_thinking do |e|
 			e.buddy.thinking!
-
-			fire :typing, buddy: e.buddy, mode: :thinking
 		end
 
 		on_packet :typing_stop do |e|
 			e.buddy.not_typing!
-
-			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
 		on_packet :message do |e|
-			next unless e.buddy.typing? || e.buddy.thinking?
-
 			e.buddy.not_typing!
-
-			fire :typing, buddy: e.buddy, mode: :stop
 		end
 
 		# groupchat extension support
@@ -282,14 +252,6 @@ class Session
 
 			if e.packet.empty?
 				group_chat.joined!
-
-				e.buddy.send_packet [:groupchat, :join], group_chat.id
-
-				fire :group_chat_join, group_chat: group_chat, invited_by: group_chat.invited_by
-
-				group_chat.participants.each_value {|participant|
-					fire :group_chat_join, group_chat: group_chat, buddy: ~participant
-				}
 
 				next
 			end

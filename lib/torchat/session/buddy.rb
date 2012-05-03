@@ -69,6 +69,7 @@ class Buddy
 		@group_chats = JoinedGroupChats.new(self)
 		@tries       = 0
 		@last_try    = nil
+		@typing      = :stop
 
 		own! incoming
 		own! outgoing
@@ -152,9 +153,31 @@ class Buddy
 
 	def typing?;     @typing == :start;    end
 	def thinking?;   @typing == :thinking; end
-	def typing!;     @typing = :start;     end
-	def thinking!;   @typing = :thinking;  end
-	def not_typing!; @typing = :stop;      end
+	def not_typing?; @typing == :stop;     end
+
+	def typing!
+		return if typing?
+
+		@typing = :start
+
+		session.fire :typing, buddy: self, mode: :start
+	end
+
+	def thinking!
+		return if thinking?
+
+		@typing = :thinking
+
+		session.fire :typing, buddy: self, mode: :thinking
+	end
+
+	def not_typing!
+		return if not_typing?
+
+		@typing = :stop
+
+		session.fire :typing, buddy: self, mode: :stop
+	end
 
 	def send_packet (*args)
 		raise 'you cannot send packets yet' unless has_outgoing?

@@ -39,6 +39,8 @@ class FileTransfers <  Hash
 			ft.from = sender
 
 			self[ft.id] = ft
+
+			fire :file_transfer_start, file_transfer: ft
 		}
 	end
 

@@ -69,7 +69,11 @@ define_packet :pong do
 end
 
 define_packet :client do
-	define_unpacker_for 1
+	define_unpacker_for 0 .. 1
+
+	def nil?
+		@internal.nil?
+	end
 
 	def name
 		@internal
@@ -80,7 +84,11 @@ define_packet :client do
 end
 
 define_packet :version do
-	define_unpacker_for 1
+	define_unpacker_for 0 .. 1
+
+	def nil?
+		@internal.nil?
+	end
 
 	def to_s
 		@internal

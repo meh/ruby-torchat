@@ -45,7 +45,18 @@ class GroupChat
 
 	def joining?; @joining;         end
 	def joined?;  !joining?;        end
-	def joined!;  @joining = false; end
+
+	def joined!
+		@joining = false
+
+		invited_by.send_packet [:groupchat, :join], id
+
+		session.fire :group_chat_join, group_chat: self, invited_by: invited_by
+
+		participants.each_value {|participant|
+			session.fire :group_chat_join, group_chat: self, buddy: ~participant
+		}
+	end
 
 	def on (what, &block)
 		session.on what do |e|
