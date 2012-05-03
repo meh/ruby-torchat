@@ -181,6 +181,10 @@ class Packet
 				args  = range.end == -1 ? data.split(' ') : data.split(' ', range.end)
 				arity = range.end == -1 ? range.begin .. args.length : range
 
+				if args.last && args.last.empty?
+					args[-1] = nil
+				end
+
 				unless arity === args.length
 					raise ArgumentError, "wrong number of arguments (#{args.length} for #{args.length < range.begin ? range.begin : range.end})"
 				end

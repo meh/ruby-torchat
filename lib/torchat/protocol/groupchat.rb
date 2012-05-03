@@ -117,7 +117,11 @@ define_extension :groupchat do
 	end
 
 	define_packet :leave do
-		define_unpacker_for 1 .. 2
+		define_unpacker_for 1 .. 2 do |data|
+			id, data = data.split ' ', 2
+
+			[id, data && !data.empty ? data.force_encoding('UTF-8') : nil]
+		end
 
 		attr_accessor :id, :reason
 
@@ -127,7 +131,7 @@ define_extension :groupchat do
 		end
 
 		def pack
-			super("#{id}#{" #{reason}" if reason}")
+			super("#{id}#{" #{reason.encode('UTF-8')}" if reason}")
 		end
 
 		def inspect
@@ -162,7 +166,7 @@ define_extension :groupchat do
 
 	define_packet :message do
 		define_unpacker_for 2 do |data|
-			id, data = split ' ', 2
+			id, data = data.split ' ', 2
 
 			[id, data.force_encoding('UTF-8')]
 		end
