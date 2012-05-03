@@ -60,6 +60,18 @@ class Buddies < Hash
 		self[buddy.id] = buddy
 	end
 
+	def each_online (&block)
+		each {|id, buddy|
+			block.call id, buddy if buddy.online?
+		}
+	end
+
+	def each_offline (&block)
+		each {|id, buddy|
+			block.call id, buddy if buddy.offline?
+		}
+	end
+
 	def add (id, ali = nil)
 		if buddy = self[id]
 			buddy.permanent!

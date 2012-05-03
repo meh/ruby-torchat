@@ -39,7 +39,7 @@ class Broadcasts < Array
 
 		push message
 
-		session.buddies.each_online {|buddy|
+		session.buddies.each_online {|id, buddy|
 			buddy.send_packet [:broadcast, :message], message.to_s
 		}
 
