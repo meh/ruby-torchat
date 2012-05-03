@@ -271,6 +271,10 @@ class Torchatd
 		end
 	end
 
+	def typing (buddy, mode)
+		send_everyone "#{buddy.id} TYPING #{mode}"
+	end
+
 	def group_chat (what, group_chat, buddy = nil, *args)
 		if what == :create
 			send_everyone "GROUPCHAT_CREATE #{group_chat.id}"
@@ -292,8 +296,8 @@ class Torchatd
 		end
 	end
 
-	def typing (buddy, mode)
-		send_everyone "#{buddy.id} TYPING #{mode}"
+	def broadcast (message)
+		send_everyone "BROADCAST #{message}"
 	end
 
 	def connected?; @connected; end
@@ -423,10 +427,6 @@ EM.run {
 				d.received_packet e.packet unless e.packet.extension
 			end
 
-			s.on :typing do |e|
-				d.typing e.buddy, e.mode
-			end
-
 			s.on :group_chat_create do |e|
 				d.group_chat :create, e.group_chat
 			end
@@ -457,6 +457,14 @@ EM.run {
 
 			s.on :group_chat_destroy do |e|
 				d.group_chat :destroy, e.group_chat
+			end
+
+			s.on :typing do |e|
+				d.typing e.buddy, e.mode
+			end
+
+			s.on :broadcast do |e|
+				d.broadcast e.message
 			end
 
 			s.online! if options[:online]
