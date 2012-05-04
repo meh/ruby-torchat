@@ -312,14 +312,14 @@ class Session
 				buddy = buddies.add_temporary(e.packet.to_s)
 
 				buddy.on :ready do |e|
-					group_chat.participants.add buddy, e.buddy
+					group_chat.add buddy, e.buddy
 
 					fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
 
 					e.remove!
 				end
 			else
-				group_chat.participants.add buddy, e.buddy
+				group_chat.add buddy, e.buddy
 
 				fire :group_chat_join, group_chat: group_chat, buddy: buddy, invited_by: e.buddy
 			end
