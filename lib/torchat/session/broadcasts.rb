@@ -29,14 +29,14 @@ class Broadcasts < Array
 	end
 
 	def send_message (message)
-		received(message)
+		received(message, true)
 	end
 
 	def received? (message)
 		any? { |m| m == message }
 	end
 
-	def received (message)
+	def received (message, no_event = false)
 		return if received? message
 
 		Broadcast::Message.parse(message).tap {|message|
@@ -48,7 +48,7 @@ class Broadcasts < Array
 				end
 			}
 
-			session.fire :broadcast, message: message
+			session.fire :broadcast, message: message unless no_event
 		}
 	end
 
