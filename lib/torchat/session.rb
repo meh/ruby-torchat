@@ -365,7 +365,7 @@ class Session
 
 		# broadcast support
 		on_packet :broadcast, :message do |e|
-			broadcasts.received e.to_str
+			broadcasts.received e.packet.to_str
 		end
 
 		set_interval 360 do
