@@ -151,4 +151,8 @@ class Torchat
 	def send_message_to (name, message)
 		@session.buddies[name].send_message(message)
 	end
+
+	def send_broadcast (message)
+		@session.broadcasts.send_message(message)
+	end
 end

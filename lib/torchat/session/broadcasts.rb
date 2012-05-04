@@ -28,6 +28,10 @@ class Broadcasts < Array
 		@session = session
 	end
 
+	def send_message (message)
+		received(message)
+	end
+
 	def received? (message)
 		any? { |m| m.to_s == message }
 	end
@@ -35,15 +39,17 @@ class Broadcasts < Array
 	def received (message)
 		return if received? message
 
-		message = Broadcast::Message.parse(message)
+		Broadcast::Message.parse(message).tap {|message|
+			push message
 
-		push message
+			session.buddies.each_online {|id, buddy|
+				if buddy.supports? :broadcast
+					buddy.send_packet [:broadcast, :message], message.to_s
+				end
+			}
 
-		session.buddies.each_online {|id, buddy|
-			buddy.send_packet [:broadcast, :message], message.to_s
+			session.fire :broadcast, message: message
 		}
-
-		session.fire :broadcast, message: message
 	end
 
 	def flush! (time)
