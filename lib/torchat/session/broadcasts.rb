@@ -33,7 +33,7 @@ class Broadcasts < Array
 	end
 
 	def received? (message)
-		any? { |m| m.to_s == message }
+		any? { |m| m == message }
 	end
 
 	def received (message)

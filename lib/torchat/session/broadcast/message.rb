@@ -38,6 +38,10 @@ class Message
 
 	alias to_str to_s
 
+	def == (other)
+		to_s == other
+	end
+
 	def inspect
 		"#<Torchat::Broadcast::Message(#{tags.join ' '}): #{to_s}>"
 	end
