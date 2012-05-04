@@ -81,6 +81,10 @@ class GroupChat
 
 		return if participants.has_key? buddy.id
 
+		unless buddy.supports? :groupchat
+			raise ArgumentError, "#{buddy.id} doesn't support groupchats"
+		end
+
 		buddy.send_packet [:groupchat, :invite], id, modes
 		buddy.send_packet [:groupchat, :participants], id, participants.keys
 
