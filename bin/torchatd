@@ -207,6 +207,9 @@ class Torchatd
 		when :allow
 			profile.buddies[rest].allow!
 
+		when :broadcast
+			profile.send_broadcast rest
+
 		when :groupchats
 			connection.send_response "GROUPCHATS #{profile.group_chats.keys.join(' ')}"
 
