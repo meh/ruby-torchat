@@ -120,7 +120,7 @@ define_extension :groupchat do
 		define_unpacker_for 1 .. 2 do |data|
 			id, data = data.split ' ', 2
 
-			[id, data && !data.empty ? data.force_encoding('UTF-8') : nil]
+			[id, data && !data.empty? ? data.force_encoding('UTF-8') : nil]
 		end
 
 		attr_accessor :id, :reason
