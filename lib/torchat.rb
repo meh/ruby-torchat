@@ -155,4 +155,12 @@ class Torchat
 	def send_broadcast (message)
 		@session.broadcasts.send_message(message)
 	end
+
+	def disable_broadcasts
+		@session.broadcasts.disable!
+	end
+
+	def enable_broadcasts
+		@session.broadcasts.enable!
+	end
 end

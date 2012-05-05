@@ -22,22 +22,31 @@ require 'torchat/session/broadcast/message'
 class Torchat; class Session
 
 class Broadcasts < Array
-	attr_reader :session
+	attr_reader   :session
+	attr_accessor :cooldown
 
 	def initialize (session)
 		@session = session
+
+		@cooldown = 360
 	end
+
+	def disable!;  @disabled = true;  end
+	def enable!;   @disabled = false; end
+	def disabled?; @disabled;         end
 
 	def send_message (message)
 		received(message, true)
 	end
 
 	def received? (message)
+		flush!
+
 		any? { |m| m == message }
 	end
 
 	def received (message, no_event = false)
-		return if received? message
+		return if disabled? or received? message
 
 		Broadcast::Message.parse(message).tap {|message|
 			push message
@@ -52,9 +61,9 @@ class Broadcasts < Array
 		}
 	end
 
-	def flush! (time)
+	def flush!
 		delete_if {|message|
-			(Time.now.to_i - message.at.to_i) > time
+			(Time.now.to_i - message.at.to_i) > cooldown
 		}
 	end
 end

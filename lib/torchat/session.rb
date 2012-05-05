@@ -368,10 +368,6 @@ class Session
 			broadcasts.received e.packet.to_str
 		end
 
-		set_interval 360 do
-			broadcasts.flush! 360
-		end
-
 		yield self if block_given?
 	end
 
