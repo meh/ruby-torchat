@@ -20,14 +20,20 @@
 require 'securerandom'
 
 class Torchat
-	if ENV['DEBUG']
+	def self.debug?
+		return false unless env = ENV['DEBUG'] || ENV['TORCHAT_DEBUG']
+
+		env.to_i.zero? ? 1 : env.to_i
+	end
+
+	if debug?
 		require 'ap'
 	end
 
 	def self.debug (argument, options = {})
-		return if !ENV['DEBUG'] && !options[:force]
+		return if !debug? && !options[:force]
 
-		return if ENV['DEBUG'].to_i < (options[:level] || 1) && !options[:force]
+		return if debug? < (options[:level] || 1) && !options[:force]
 
 		output = options[:prefix] ? options[:prefix] : "[#{Time.new}] "
 
