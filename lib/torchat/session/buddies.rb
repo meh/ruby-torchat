@@ -86,9 +86,9 @@ class Buddies < Hash
 		buddy.permanent!
 		buddy.alias = ali
 		
-		self << buddy and session.fire :added do |n|
-			n.buddy = buddy
-		end
+		self << buddy
+		
+		session.fire :buddy_add, buddy: buddy
 
 		buddy.connect if session.online?
 
@@ -109,9 +109,7 @@ class Buddies < Hash
 
 		self << buddy
 		
-		session.fire :added do |n|
-			n.buddy = buddy
-		end
+		session.fire :add_buddy, buddy: buddy
 
 		buddy.connect if session.online?
 
@@ -129,9 +127,9 @@ class Buddies < Hash
 
 		buddy.remove!
 
-		session.fire :removal do |n|
-			n.buddy = buddy
-		end
+		session.fire :remove_buddy, buddy: buddy
+
+		buddy.remove_callbacks
 
 		if buddy.permanent? && buddy.online?
 			buddy.send_packet :remove_me

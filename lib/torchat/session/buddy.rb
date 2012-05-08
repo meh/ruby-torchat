@@ -63,6 +63,7 @@ class Buddy
 		@session     = session
 		@id          = id[/^(.*?)(\.onion)?$/, 1]
 		@address     = "#{@id}.onion"
+		@callbacks   = []
 		@avatar      = Avatar.new
 		@client      = Client.new
 		@supports    = []
@@ -88,21 +89,33 @@ class Buddy
 	end
 
 	def on (what, &block)
-		session.on what do |e|
+		removable = session.on what do |e|
 			block.call e if e.buddy == self
 		end
+
+		@callbacks << removable
+
+		removable
 	end
 
 	alias when on
 
 	def on_packet (name = nil)
-		if name
+		removable = if name
 			on :packet do |e|
 				block.call e if e.packet.type == name
 			end
 		else
 			on :packet, &block
 		end
+
+		@callbacks << removable
+
+		removable
+	end
+
+	def remove_callbacks
+		@callbacks.each(&:remove!).clear
 	end
 
 	def has_incoming?
