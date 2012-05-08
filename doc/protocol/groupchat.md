@@ -69,29 +69,29 @@ This packet is sent to ask someone if he's participating in a groupchat, it cont
 the groupchat.
 
 ```
-> groupchat_participating? 6f012391-883d-4f4f-8d54-52c4227b3ac9
-< groupchat_participating!
+> groupchat_is_participating 6f012391-883d-4f4f-8d54-52c4227b3ac9
+< groupchat_participating
 ```
 
 ### Groupchat Participating
 
-This packet is sent as answer to the *particpating?* packet and is used to answer that we
+This packet is sent as answer to the *is_participating* packet and is used to answer that we
 are participating, it contains the id of the groupchat.
 
 
 ```
-< groupchat_participating? 6f012391-883d-4f4f-8d54-52c4227b3ac9
-> groupchat_participating! 6f012391-883d-4f4f-8d54-52c4227b3ac9
+< groupchat_is_participating 6f012391-883d-4f4f-8d54-52c4227b3ac9
+> groupchat_participating 6f012391-883d-4f4f-8d54-52c4227b3ac9
 ```
 
 ### Groupchat Not Participating
 
-This packet is sent as answer to the *participating?* packet and is used to answer that we
+This packet is sent as answer to the *is_participating* packet and is used to answer that we
 are not participating, it contains the id of the groupchat.
 
 ```
-< groupchat_participating? 6f012391-883d-4f4f-8d54-52c4227b3ac9
-> groupchat_not_participating! 6f012391-883d-4f4f-8d54-52c4227b3ac9
+< groupchat_is_participating 6f012391-883d-4f4f-8d54-52c4227b3ac9
+> groupchat_not_participating 6f012391-883d-4f4f-8d54-52c4227b3ac9
 ```
 
 ### Groupchat Join
