@@ -163,7 +163,9 @@ class Torchat
 				next if buddy.messages.empty?
 
 				File.open("#@offline_messages/#{id}_offline.txt") {|f|
-
+					buddy.messages.each {|message|
+						f.write "[delayed] #{message}\n"
+					}
 				}
 			}
 		end
