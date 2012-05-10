@@ -107,7 +107,7 @@ class Torchat
 
 		if @offline_messages
 			Dir["#@offline_messages/*_offline.txt"].each {|path|
-				buddy = @session.buddies[path[/^(.*?)_/, 1]]
+				buddy = @session.buddies[path[/([^\/_]+)_offline\.txt$/, 1]]
 
 				File.open(path) {|f|
 					current = ''
