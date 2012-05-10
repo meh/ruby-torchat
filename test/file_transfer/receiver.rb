@@ -12,23 +12,23 @@ end.parse!
 
 EM.run {
 	Torchat.profile(options[:profile]).start {|s|
-		s.when :connecting_to do |e|
+		s.when :connect_to do |e|
 			Torchat.debug "connecting to #{e.address}:#{e.port}"
 		end
 
-		s.on :failed_connection do |e|
+		s.on :connect_failure do |e|
 			Torchat.debug "#{e.buddy.id} failed to connect"
 		end
 
-		s.on :connection do |e|
+		s.on :connect do |e|
 			Torchat.debug "#{e.buddy.id} connected"
 		end
 
-		s.on :verification do |e|
+		s.on :verify do |e|
 			Torchat.debug "#{e.buddy.id} has been verified"
 		end
 
-		s.on :disconnection do |e|
+		s.on :disconnect do |e|
 			Torchat.debug "#{e.buddy.id} disconnected"
 		end
 

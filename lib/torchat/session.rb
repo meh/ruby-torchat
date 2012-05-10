@@ -57,7 +57,7 @@ class Session
 			e.buddy.send_packet :not_implemented, e.line.split(' ').first
 		end
 
-		on :verification do |e|
+		on :verify do |e|
 			# this actually gets executed only if the buddy doesn't exist
 			# so we can still check if the buddy is permanent below
 			buddies.add_temporary e.buddy
@@ -351,7 +351,7 @@ class Session
 			fire :group_chat_message, group_chat: group_chat, buddy: e.buddy, message: e.packet.to_str
 		end
 
-		before :disconnection do |e|
+		before :disconnect do |e|
 			e.buddy.group_chats.each_value {|group_chat|
 				group_chat.leave
 			}
@@ -460,8 +460,6 @@ class Session
 
 		Event::Removable.new(self, what, &block)
 	end
-
-	alias when on
 
 	def on_packet (*args, &block)
 		if args.length == 2

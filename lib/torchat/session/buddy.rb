@@ -98,8 +98,6 @@ class Buddy
 		removable
 	end
 
-	alias when on
-
 	def on_packet (name = nil)
 		removable = if name
 			on :packet do |e|
@@ -231,7 +229,7 @@ class Buddy
 	def failed!
 		@connecting = false
 
-		session.fire :failed_connection, buddy: self
+		session.fire :connect_failure, buddy: self
 	end
 
 	def connecting?; @connecting; end
@@ -265,7 +263,7 @@ class Buddy
 
 		ping! send_packet!(:ping, session.address).cookie
 
-		session.fire :connection, buddy: self
+		session.fire :connect, buddy: self
 	end
 
 	def verified?; @verified; end
@@ -277,7 +275,7 @@ class Buddy
 
 		own! incoming
 
-		session.fire :verification, buddy: self
+		session.fire :verify, buddy: self
 
 		@outgoing.verification_completed
 		@incoming.verification_completed
@@ -300,7 +298,7 @@ class Buddy
 	def disconnected
 		return if disconnected?
 
-		session.fire :disconnection, buddy: self
+		session.fire :disonnect, buddy: self
 
 		@verified      = false
 		@ready         = false
