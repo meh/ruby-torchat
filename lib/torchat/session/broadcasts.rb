@@ -34,6 +34,7 @@ class Broadcasts < Array
 	def disable!;  @disabled = true;  end
 	def enable!;   @disabled = false; end
 	def disabled?; @disabled;         end
+	def enabled?;  !disabled?;        end
 
 	def send_message (message)
 		received(message, true)
