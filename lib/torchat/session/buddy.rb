@@ -49,7 +49,7 @@ class Buddy
 
 	Client = Struct.new(:name, :version)
 
-	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try, :group_chats
+	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try, :messages, :group_chats
 	attr_writer   :status
 	attr_accessor :name, :description, :alias, :last_received
 
@@ -67,6 +67,7 @@ class Buddy
 		@avatar      = Avatar.new
 		@client      = Client.new
 		@supports    = []
+		@messages    = []
 		@group_chats = JoinedGroupChats.new(self)
 		@tries       = 0
 		@last_try    = nil
@@ -203,7 +204,25 @@ class Buddy
 	end
 
 	def send_message (text)
-		send_packet :message, text
+		if offline?
+			@messages << text
+
+			unless @messages.empty?
+				on :ready do |e|
+					until @messages.empty?
+						break if offline?
+
+						send_message "[delayed] #{@messages.shift}"
+					end
+
+					if @messages.empty?
+						e.remove!
+					end
+				end
+			end
+		else
+			send_packet :message, text
+		end
 	end
 
 	def send_file (path)

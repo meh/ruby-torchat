@@ -410,8 +410,8 @@ class Session
 		}
 	end
 
-	def online?;  @status != :offline; end
-	def offline?; !online?;            end
+	def offline?; @status == :offline; end
+	def online?;  !offline?;           end
 
 	def online!
 		return if online?

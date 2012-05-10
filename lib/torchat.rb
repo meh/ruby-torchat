@@ -34,14 +34,11 @@ class Torchat
 		new("#{directory}/torchat.ini").tap {|t|
 			t.name = name
 			t.path = directory
-
-			t.buddy_list_at "#{directory}/buddy-list.txt"
-			t.blocked_buddy_list_at "#{directory}/blocked-buddy-list.txt"
 		}
 	end
 
-	attr_reader   :config, :session, :tor
-	attr_accessor :name, :path
+	attr_reader   :config, :session, :tor, :path
+	attr_accessor :name
 
 	def initialize (path)
 		@config = if path.is_a? Hash
@@ -108,6 +105,32 @@ class Torchat
 			}
 		end
 
+		if @offline_messages
+			Dir["#@offline_messages/*_offline.txt"].each {|path|
+				buddy = @session.buddies[path[/^(.*?)_/, 1]]
+
+				File.open(path) {|f|
+					current = ''
+
+					until f.eof?
+						line = f.readline
+						
+						if line.start_with? '[delayed] '
+							buddy.messages.push current
+
+							current = line[10 .. -1]
+						else
+							current << "\n" << line
+						end
+					end
+
+					buddy.messages.push current unless current.empty?
+				}
+
+				File.delete(path)
+			}
+		end
+
 		@session.start
 	end
 
@@ -134,6 +157,32 @@ class Torchat
 				}
 			}
 		end
+
+		if @offline_messages
+			@session.buddies.each {|id, buddy|
+				next if buddy.messages.empty?
+
+				File.open("#@offline_messages/#{id}_offline.txt") {|f|
+
+				}
+			}
+		end
+	end
+
+	def path= (directory)
+		@path = directory
+
+		unless @buddy_list
+			buddy_list_at "#{directory}/buddy-list.txt"
+		end
+
+		unless @blocked_buddy_list
+			blocked_buddy_list_at "#{directory}/blocked-buddy-list.txt"
+		end
+
+		unless @offline_messages
+			offline_messages_at directory
+		end
 	end
 
 	def buddy_list_at (path)
@@ -142,6 +191,10 @@ class Torchat
 
 	def blocked_buddy_list_at (path)
 		@blocked_buddy_list = File.expand_path(path)
+	end
+
+	def offline_messages_at (path)
+		@offline_messages = File.expand_path(path)
 	end
 
 	def send_packet_to (name, packet)
