@@ -92,6 +92,8 @@ class Torchat
 		if @buddy_list && File.readable?(@buddy_list)
 			File.open(@buddy_list).lines.each {|line|
 				line.match(/^(.+?)(?: (.*?))?$/) {|m|
+					next if m[1] == @session.id
+
 					@session.buddies.add(m[1], m[2])
 				}
 			}
@@ -100,6 +102,8 @@ class Torchat
 		if @blocked_buddy_list && File.readable?(@blocked_buddy_list)
 			File.open(@blocked_buddy_list).lines.each {|line|
 				line.match(/^(.+?)(?: (.*?))?$/) {|m|
+					next if m[1] == @session.id
+
 					@session.buddies.add_temporary(m[1], m[2]).block!
 				}
 			}
