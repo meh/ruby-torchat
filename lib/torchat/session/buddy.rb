@@ -317,7 +317,7 @@ class Buddy
 	def disconnected
 		return if disconnected?
 
-		session.fire :disonnect, buddy: self
+		session.fire :disconnect, buddy: self
 
 		@verified      = false
 		@ready         = false
