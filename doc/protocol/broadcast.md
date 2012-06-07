@@ -22,5 +22,5 @@ not it will send the same message to every other contact in his contact list and
 The check for messages already broadcasted is made by hashing the message itself.
 
 ```
-broadcast_message broadcast messages in #torchat rock
+> broadcast_message broadcast messages in #torchat rock
 ```
