@@ -259,7 +259,7 @@ class Torchatd
 			id, rest = rest.split ' ', 2
 
 			if (buddy = profile.buddies[id]) && buddy.supports?(:latency)
-				@pings[id][buddy.latency.ping!.id] = rest
+				@pings[id][buddy.latency.ping!.id] = [Time.now, rest]
 			end
 
 		else
@@ -331,11 +331,17 @@ class Torchatd
 	end
 
 	def latency (buddy, amount, id)
-		send_everyone "#{buddy.id} LATENCY #{@pings[buddy.id].delete(id)}"
+		send_everyone "#{buddy.id} LATENCY #{@pings[buddy.id].delete(id).last}"
 	end
 
 	def cleanup!
-		@pings.clear
+		@pings.each {|id, pings|
+			pings.reject! {|time, payload|
+				(Time.now - time).to_i >= 80
+			}
+		}
+
+		@pings.reject!(&:empty?)
 	end
 
 	def connected?; @connected; end
@@ -524,7 +530,7 @@ EM.run {
 			s.online! if options[:online]
 		}
 
-		EM.add_periodic_timer 300 do
+		EM.add_periodic_timer 60 do
 			d.cleanup!
 		end
 	}.start(options[:host], options[:port], options[:ssl])
