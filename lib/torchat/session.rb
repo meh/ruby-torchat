@@ -376,7 +376,7 @@ class Session
 		on_packet :latency, :pong do |e|
 			e.buddy.latency.pong(e.packet.id)
 
-			fire :latency, buddy: e.buddy, amount: e.buddy.latency.to_f
+			fire :latency, buddy: e.buddy, amount: e.buddy.latency.to_f, id: e.packet.id
 		end
 
 		yield self if block_given?

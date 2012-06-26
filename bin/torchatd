@@ -86,6 +86,7 @@ class Torchatd
 
 		@buddies     = []
 		@connections = []
+		@pings       = Hash.new { |h, k| h[k] = {} }
 
 		yield self if block_given?
 	end
@@ -255,12 +256,10 @@ class Torchatd
 			end
 
 		when :latency
-			if buddy = profile.buddies[rest]
-				if buddy.supports? :latency
-					buddy.latency.ping!
-				else
-					connection.send_response "#{buddy.id} LATENCY unsupported"
-				end
+			id, rest = rest.split ' ', 2
+
+			if (buddy = profile.buddies[id]) && buddy.supports?(:latency)
+				@pings[id][buddy.latency.ping!.id] = rest
 			end
 
 		else
@@ -331,8 +330,12 @@ class Torchatd
 		end
 	end
 
-	def latency (buddy, amount)
-		send_everyone "#{buddy.id} LATENCY #{amount}"
+	def latency (buddy, amount, id)
+		send_everyone "#{buddy.id} LATENCY #{@pings[buddy.id].delete(id)}"
+	end
+
+	def cleanup!
+		@pings.clear
 	end
 
 	def connected?; @connected; end
@@ -515,10 +518,14 @@ EM.run {
 			end
 
 			s.on :latency do |e|
-				d.latency e.buddy, e.amount
+				d.latency e.buddy, e.amount, e.id
 			end
 
 			s.online! if options[:online]
 		}
+
+		EM.add_periodic_timer 300 do
+			d.cleanup!
+		end
 	}.start(options[:host], options[:port], options[:ssl])
 }
