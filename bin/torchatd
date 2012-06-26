@@ -254,6 +254,15 @@ class Torchatd
 				group_chat.send_message message
 			end
 
+		when :latency
+			if buddy = profile.buddies[rest]
+				if buddy.supports? :latency
+					buddy.latency.ping!
+				else
+					connection.send_response "#{buddy.id} LATENCY unsupported"
+				end
+			end
+
 		else
 			connection.send_response "UNIMPLEMENTED #{command}"
 		end
@@ -320,6 +329,10 @@ class Torchatd
 		elsif what == :destroy
 			send_everyone "GROUPCHAT_DESTROY #{group_chat.id}"
 		end
+	end
+
+	def latency (buddy, amount)
+		send_everyone "#{buddy.id} LATENCY #{amount}"
 	end
 
 	def connected?; @connected; end
@@ -499,6 +512,10 @@ EM.run {
 
 			s.on :group_chat_destroy do |e|
 				d.group_chat :destroy, e.group_chat
+			end
+
+			s.on :latency do |e|
+				d.latency e.buddy, e.amount
 			end
 
 			s.online! if options[:online]

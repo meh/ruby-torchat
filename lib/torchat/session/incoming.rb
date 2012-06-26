@@ -40,7 +40,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 			return
 		end
 
-		if packet.type == :ping
+		if packet.type == :ping && !packet.extension
 			Torchat.debug "ping incoming from claimed #{packet.id}", level: 2
 
 			if @session.offline?
@@ -101,7 +101,7 @@ class Incoming < EventMachine::Protocols::LineAndTextProtocol
 					@temp_buddy.send_packet :pong, packet.cookie
 				end
 			end
-		elsif packet.type == :pong
+		elsif packet.type == :pong && !packet.extension
 			unless buddy = (@session.buddies[(@last_ping.id rescue nil)] || @temp_buddy) || !buddy.pinged?
 				close_connection_after_writing
 

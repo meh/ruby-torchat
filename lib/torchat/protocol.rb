@@ -251,5 +251,6 @@ require 'torchat/protocol/standard'
 require 'torchat/protocol/groupchat'
 require 'torchat/protocol/typing'
 require 'torchat/protocol/broadcast'
+require 'torchat/protocol/latency'
 
 end; end

@@ -49,7 +49,7 @@ class Buddy
 
 	Client = Struct.new(:name, :version)
 
-	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try, :messages, :group_chats
+	attr_reader   :session, :id, :address, :avatar, :client, :tries, :last_try, :messages, :group_chats, :latency
 	attr_writer   :status
 	attr_accessor :name, :description, :alias, :last_received
 
@@ -69,6 +69,7 @@ class Buddy
 		@supports    = []
 		@messages    = []
 		@group_chats = JoinedGroupChats.new(self)
+		@latency     = Latency.new(self)
 		@tries       = 0
 		@last_try    = nil
 		@typing      = :stop
@@ -339,3 +340,4 @@ end
 end; end
 
 require 'torchat/session/buddy/joined_group_chats'
+require 'torchat/session/buddy/latency'

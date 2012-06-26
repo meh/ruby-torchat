@@ -368,6 +368,17 @@ class Session
 			broadcasts.received e.packet.to_str
 		end
 
+		# latency support
+		on_packet :latency, :ping do |e|
+			e.buddy.send_packet [:latency, :pong], e.packet.id
+		end
+
+		on_packet :latency, :pong do |e|
+			e.buddy.latency.pong(e.packet.id)
+
+			fire :latency, buddy: e.buddy, amount: e.buddy.latency.to_f
+		end
+
 		yield self if block_given?
 	end
 
