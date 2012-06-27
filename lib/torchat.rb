@@ -67,6 +67,24 @@ class Torchat
 			YAML.parse_file(path).transform
 		end
 
+		if @config['path']
+			if @config['path'].is_a? String
+				self.path = @config['path']
+			else
+				if @config['path']['buddy_list']
+					buddy_list_at @config['path']['buddy_list']
+				end
+
+				if @config['path']['blocked_buddy_list']
+					blocked_buddy_list_at @config['path']['blocked_buddy_list']
+				end
+
+				if @config['path']['offline_messages']
+					offline_messages_at @config['path']['offline_messages']
+				end
+			end
+		end
+
 		@tor = Tor.new(@config)
 	end
 
