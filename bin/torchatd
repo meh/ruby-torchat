@@ -28,8 +28,8 @@ OptionParser.new do |o|
 	o.on '-l', '--listen HOST:PORT', 'the host and port to listen on' do |value|
 		host, port = value.split(':')
 
-		options[:host] = host      if host
-		options[:port] = port.to_i if port
+		options[:host] = host      unless host.empty?
+		options[:port] = port.to_i unless port.empty?
 	end
 
 	o.on '-s', '--ssl KEY:CERT', 'the private key and cert files' do |path|
@@ -424,7 +424,7 @@ EM.run {
 			end or abort 'could not deduce the onion id'
 		end
 
-		puts "torchatd started for #{d.profile.config['id']}"
+		puts "torchatd started for #{d.profile.config['id']} on #{options[:host]}:#{options[:port]}"
 
 		%w[INT KILL].each {|sig|
 			trap sig do
