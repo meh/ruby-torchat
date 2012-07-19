@@ -14,7 +14,7 @@ Gem::Specification.new {|s|
 	s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
 	s.require_paths = ['lib']
 
-	s.add_dependency 'eventmachine', '>= 1.0.0.beta.4'
+	s.add_dependency 'eventmachine', '>= 1.0.0.rc.4'
 	s.add_dependency 'em-socksify'
 
 	s.add_dependency 'iniparse'
