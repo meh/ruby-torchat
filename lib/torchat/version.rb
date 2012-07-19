@@ -19,6 +19,6 @@
 
 class Torchat
 	def self.version
-		'0.0.1'
+		'0.0.1.rc.1'
 	end
 end
