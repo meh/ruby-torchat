@@ -1,5 +1,5 @@
 #--
-# Copyleft meh. [http://meh.paranoid.pk | meh@paranoici.org]
+# Copyleft meh. [http://meh.schizofreni.co | meh@schizofreni.co]
 #
 # This file is part of torchat for ruby.
 #

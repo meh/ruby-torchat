@@ -4,7 +4,7 @@ Gem::Specification.new {|s|
 	s.name         = 'torchat'
 	s.version      = Torchat.version
 	s.author       = 'meh.'
-	s.email        = 'meh@paranoici.org'
+	s.email        = 'meh@schizofreni.co'
 	s.homepage     = 'http://github.com/meh/ruby-torchat'
 	s.platform     = Gem::Platform::RUBY
 	s.summary      = 'Torchat implementation in Ruby, event-driven EventMachine based library.'
